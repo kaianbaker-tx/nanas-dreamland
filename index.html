@@ -67,7 +67,7 @@
   <div class="tb" id="tj">FLY</div>
   <div class="tb" id="tk">SUCK</div>
 </div>
-<div id="hint">&#8592;&#8594; move &nbsp;|&nbsp; Z / Up = jump &amp; float &nbsp;|&nbsp; X = inhale, spit &nbsp;|&nbsp; Down = swallow (a flyer gives WINGS) &nbsp;|&nbsp; P pause &nbsp;|&nbsp; M mute</div>
+<div id="hint">&#8592;&#8594; move &nbsp;|&nbsp; Z / Up = jump &amp; float &nbsp;|&nbsp; X = inhale, spit &nbsp;|&nbsp; Down = swallow (flyer = WINGS, spiky guy = SPIKY HAT) &nbsp;|&nbsp; P pause &nbsp;|&nbsp; M mute</div>
 <script>
 "use strict";
 /* ============================================================
@@ -200,7 +200,8 @@ const SFX = {
   boom:  () => { noise(.22,.22); blip(140,.2,'square',.16,60); },
   clear: () => [0,1,2,3].forEach(i => setTimeout(()=>blip([523,659,784,1047][i], .18,'square',.2), i*110)),
   bosshit:()=> { blip(200,.16,'sawtooth',.2,420); noise(.1,.14); },
-  tired: () => blip(560, .3, 'triangle', .16, 180)
+  tired: () => blip(560, .3, 'triangle', .16, 180),
+  spikes:() => { blip(900, .08, 'square', .16, 1500); noise(.08, .1); }
 };
 
 /* melody: [semitone-from-C4 or null, beats] */
@@ -728,7 +729,8 @@ const pl = {
   x:0, y:0, w:14, h:14, vx:0, vy:0, dir:1,
   onGround:false, floating:false, inhaling:0, mouthful:null,
   hp:6, maxhp:6, inv:0, anim:0, walkT:0, puffT:0, hurtT:0, squish:0, dead:false,
-  floatT:0, tired:false, wings:false, wingFuel:0, wingRest:false
+  floatT:0, tired:false, wings:false, wingFuel:0, wingRest:false,
+  spiky:false, spikeT:0, spikeCool:0, spikeHitBoss:false
 };
 
 function tileAt(tx,ty){
@@ -823,6 +825,7 @@ function loadLevel(i){
       pl.inhaling = 0; pl.mouthful = null; pl.inv = 90; pl.dead = false;
       pl.floatT = 0; pl.tired = false;
       if (pl.wings){ pl.wingFuel = WING_MAX; pl.wingRest = false; }
+      pl.spikeT = 0; pl.spikeCool = 0;
     }
     else if (kind === 'walker' || kind === 'flyer' || kind === 'spiky') enemies.push(mkEnemy(kind,tx,ty));
     else if (kind === 'banana' || kind === 'heart' || kind === 'life') pickups.push(mkPickup(kind,tx,ty));
@@ -852,12 +855,43 @@ const GRAV = 0.40, MAXFALL = 6.2;
 const F_GRAV = 0.13, F_MAXFALL = 1.05;
 const FLOAT_MAX = 120;    // Kolby can puff and float on his own for 2 s, then he has to land
 const WING_MAX  = 600;    // wings from a swallowed flyer: 10 s of flying, then 10 s to rest
+const SPIKE_TIME = 60;    // spiky hat from a swallowed spiky guy: spikes stay out 1 s...
+const SPIKE_REST = 180;   // ...then rest 3 s before you can pop them again
+const SPIKE_R = 22;       // how close an enemy has to be for the spikes to pop it
 
+/* one power at a time: getting a new one swaps out the old one */
 function onWings(){ return pl.wings && !pl.wingRest && pl.wingFuel > 0; }
 function giveWings(){
   toast(pl.wings ? 'wings full again!' : 'WINGS!  fly for 10 seconds', 200);
   pl.wings = true; pl.wingFuel = WING_MAX; pl.wingRest = false;
+  pl.spiky = false; pl.spikeT = 0;
   SFX.clear();
+}
+function giveSpikes(){
+  toast(pl.spiky ? 'spikes ready!' : 'SPIKY HAT!  press DOWN for spikes', 200);
+  pl.spiky = true; pl.spikeT = 0; pl.spikeCool = 0;
+  pl.wings = false;
+  SFX.clear();
+}
+/* spikes out: pop enemies, peels and star blocks that are close, and poke the king once */
+function spikeAttack(){
+  const cx = pl.x + pl.w/2, cy = pl.y + pl.h/2;
+  for (const e of enemies){
+    if (e.state === 'gone') continue;
+    if (Math.hypot(e.x + e.w/2 - cx, e.y + e.h/2 - cy) < SPIKE_R) killEnemy(e);
+  }
+  for (const p of projs)
+    if (p.enemy && Math.hypot(p.x + p.w/2 - cx, p.y + p.h/2 - cy) < SPIKE_R){ p.life = 0; poof(p.x+6, p.y+5, '#ffe066', 6); }
+  for (let ty = Math.floor((cy-SPIKE_R)/TS); ty <= Math.floor((cy+SPIKE_R)/TS); ty++)
+    for (let tx = Math.floor((cx-SPIKE_R)/TS); tx <= Math.floor((cx+SPIKE_R)/TS); tx++)
+      if (tileAt(tx,ty) === 'X' && Math.hypot(tx*TS+8 - cx, ty*TS+8 - cy) < SPIKE_R + 4){
+        map[ty][tx] = '.'; poof(tx*TS+8, ty*TS+8, '#e8a05a', 12); game.score += 20; SFX.boom();
+      }
+  if (boss && boss.dead === 0 && !pl.spikeHitBoss &&
+      hit({ x: pl.x - 8, y: pl.y - 8, w: pl.w + 16, h: pl.h + 16 }, boss)){
+    pl.spikeHitBoss = true;
+    hurtBoss({ vx: boss.x + boss.w/2 > cx ? 1 : -1, life: 1 });
+  }
 }
 /* out of puff: stop floating and fall until you land */
 function dropDown(msg){
@@ -879,6 +913,7 @@ function updatePlayer(){
   let accel = 0.5, maxS = 2.05;
   if (pl.inhaling){ accel = 0.22; maxS = 0.85; }
   if (pl.floating){ accel = 0.35; maxS = onWings() ? 2.05 : 1.65; }
+  if (pl.spikeT > 0){ accel = 0.25; maxS = 0.8; }
   if (canAct){
     if (K.left && !K.right){ pl.vx -= accel; pl.dir = -1; }
     else if (K.right && !K.left){ pl.vx += accel; pl.dir = 1; }
@@ -892,7 +927,7 @@ function updatePlayer(){
     if (pl.onGround){
       pl.vy = -5.5; pl.onGround = false; pl.squish = 0.5; SFX.jump();
     } else if (!pl.floating){
-      if (!pl.tired){ pl.floating = true; pl.vy = Math.min(pl.vy, 0) - 1.7; SFX.flap(); puffRing(pl.x+7, pl.y+14); }
+      if (!pl.tired && !pl.spikeT){ pl.floating = true; pl.vy = Math.min(pl.vy, 0) - 1.7; SFX.flap(); puffRing(pl.x+7, pl.y+14); }
     } else {
       pl.vy = onWings() ? -2.2 : -1.75; SFX.flap(); puffRing(pl.x+7, pl.y+14);
     }
@@ -934,10 +969,18 @@ function updatePlayer(){
     pl.mouthful = null; pl.squish = 0.4; SFX.spit();
     puffRing(pl.x + 7, pl.y + 6);
   }
+  if (pl.spikeT > 0){ pl.spikeT--; spikeAttack(); }
+  else if (pl.spikeCool > 0 && --pl.spikeCool === 0 && pl.spiky) SFX.flap();
+  if (canAct && P.down && !pl.mouthful && pl.spiky && !pl.spikeT && !pl.spikeCool){   // spikes!
+    pl.spikeT = SPIKE_TIME; pl.spikeCool = SPIKE_REST; pl.spikeHitBoss = false;
+    pl.floating = false; pl.inhaling = 0;
+    SFX.spikes(); game.shake = 3;
+  }
   if (canAct && P.down && pl.mouthful){         // swallow
     const ate = pl.mouthful.type;
     pl.mouthful = null; game.score += 200; SFX.eat();
     if (ate === 'flyer') giveWings();
+    if (ate === 'spiky') giveSpikes();
     floatText(pl.x+2, pl.y-6, '+200', '#ffd93b');
     if (Math.random() < 0.34 && pl.hp < pl.maxhp){ pl.hp++; floatText(pl.x, pl.y-16, 'YUM!', '#ff8fb1'); }
   }
@@ -992,13 +1035,12 @@ function doSuction(){
   };
   for (const e of enemies){
     if (e.state !== 'live') continue;
-    if (e.heavy){ pull(e, 0.35, false); continue; }
     e.state = 'pulled';
   }
   for (const e of enemies){
     if (e.state === 'pulled'){
       if (!hit(zone, e)){ e.state = 'live'; continue; }
-      pull(e, 2.1, true, () => {
+      pull(e, e.heavy ? 0.45 : 2.1, true, () => {     // spiky guys are heavy: it takes a while
         e.state = 'gone'; pl.mouthful = { type: e.type }; pl.inhaling = 0; pl.squish = 0.45;
         SFX.eat();
       });
@@ -1110,7 +1152,7 @@ function updateEnemies(){
     if (e.y > MAPH*TS + 60) e.state = 'gone';
 
     // touching Kolby hurts
-    if (e.state === 'live' && hit(e, pl) && !pl.dead)
+    if (e.state === 'live' && hit(e, pl) && !pl.dead && !pl.spikeT)
       hurtPlayer(pl.x + pl.w/2 < e.x + e.w/2 ? -1 : 1, 1);
   }
   enemies = enemies.filter(e => e.state !== 'gone');
@@ -1289,7 +1331,7 @@ function updateBoss(){
   }
   if (b.state === 'hop' && !b.onGround) b.vx *= 0.995;
 
-  if (hit(b, pl) && !pl.dead) hurtPlayer(pl.x + 7 < b.x + b.w/2 ? -1 : 1, 1);
+  if (hit(b, pl) && !pl.dead && !pl.spikeT) hurtPlayer(pl.x + 7 < b.x + b.w/2 ? -1 : 1, 1);
 }
 
 /* enemy projectiles (peels) hitting Kolby */
@@ -1297,7 +1339,7 @@ function checkEnemyProjs(){
   for (const p of projs){
     if (!p.enemy) continue;
     p.vy = Math.min((p.vy||0) + GRAV*0.35, 3);
-    if (hit(p, pl) && !pl.dead){
+    if (hit(p, pl) && !pl.dead && !pl.spikeT){
       hurtPlayer(Math.sign(p.vx) || 1, 1);
       p.life = 0;
     }
@@ -2150,6 +2192,21 @@ function drawKolby(){
     }
   }
 
+  // spikes popping out all around him
+  if (pl.spikeT > 0){
+    const out = Math.min(1, (SPIKE_TIME - pl.spikeT + 1)/5) * Math.min(1, pl.spikeT/5 + 0.3);
+    const R = 8 + (SPIKE_R - 8)*out;
+    CX.fillStyle = '#f4f7ff'; CX.strokeStyle = OUT; CX.lineWidth = 1;
+    for (let i=0;i<10;i++){
+      const a = i/10*Math.PI*2 + game.t*0.03;
+      CX.beginPath();
+      CX.moveTo(cx + Math.cos(a-0.32)*8, y + Math.sin(a-0.32)*8);
+      CX.lineTo(cx + Math.cos(a)*R, y + Math.sin(a)*R);
+      CX.lineTo(cx + Math.cos(a+0.32)*8, y + Math.sin(a+0.32)*8);
+      CX.closePath(); CX.fill(); CX.stroke();
+    }
+  }
+
   // feet — big angled ovals, back one darker
   const fy = y + ry - 0.2;
   CX.fillStyle = '#d94a2e';
@@ -2184,6 +2241,8 @@ function drawKolby(){
     eye(cx + dir*1.2, eyeY, 1.7, 3.4);
     eye(cx + dir*5.2, eyeY, 1.7, 3.4);
   }
+
+  if (pl.spiky) spikyHat(cx - dir*0.8, y - ry - 0.8, pl.spikeCool > 0 && !pl.spikeT);
 
   // mouth
   if (pl.inhaling > 3){
@@ -2454,6 +2513,45 @@ function drawPuffMeter(){
     CX.fillStyle = '#7ee0ff'; ell(cx - pl.dir*9, pl.y - 2, 1.5, 2.3); CX.fill();
   }
 }
+/* the spiky hat: a little dome with spikes on top, like the spiky guy's */
+function spikyHat(x, y, resting){
+  CX.fillStyle = resting ? '#b9b4cc' : '#f4f7ff'; CX.strokeStyle = OUT; CX.lineWidth = 1;
+  for (let i=0;i<5;i++){
+    const a = -Math.PI/2 + (i-2)*0.55, len = resting ? 7 : 9;
+    CX.beginPath();
+    CX.moveTo(x + Math.cos(a-0.3)*3.6, y - 1 + Math.sin(a-0.3)*3.6);
+    CX.lineTo(x + Math.cos(a)*len, y - 1 + Math.sin(a)*len);
+    CX.lineTo(x + Math.cos(a+0.3)*3.6, y - 1 + Math.sin(a+0.3)*3.6);
+    CX.closePath(); CX.fill(); CX.stroke();
+  }
+  CX.beginPath(); CX.ellipse(x, y, 5.6, 4.6, 0, Math.PI, 0); CX.closePath(); ink('#5a5886', 1.2);
+  CX.fillStyle = '#8583b3'; ell(x - 2, y - 2.4, 1.8, 1, -.4); CX.fill();
+  rr(x - 6.6, y - 1, 13.2, 2.6, 1.3); ink('#8583b3', 1);
+}
+function drawSpikeIcon(x, y, resting){
+  CX.fillStyle = resting ? '#b9b4cc' : '#dfe6f5'; CX.strokeStyle = OUT; CX.lineWidth = 1;
+  for (let i=0;i<8;i++){
+    const a = i/8*Math.PI*2;
+    CX.beginPath();
+    CX.moveTo(x + Math.cos(a-0.35)*3, y + Math.sin(a-0.35)*3);
+    CX.lineTo(x + Math.cos(a)*7, y + Math.sin(a)*7);
+    CX.lineTo(x + Math.cos(a+0.35)*3, y + Math.sin(a+0.35)*3);
+    CX.closePath(); CX.fill(); CX.stroke();
+  }
+  circle(x, y, 3.6); ink('#4b4a6b', 1);
+}
+/* the power meter in the top bar: blue while it's usable, grey and counting down while it rests */
+function powerMeter(icon, frac, resting, secs){
+  const wx = 170, wy = 8, ww = 60;
+  icon(wx - 8, 13.5, resting);
+  rr(wx, wy, ww, 11, 5); CX.fillStyle = '#2a1b3d'; CX.fill();
+  CX.strokeStyle = 'rgba(255,246,216,.5)'; CX.lineWidth = 1; CX.stroke();
+  if (frac > 0){
+    rr(wx, wy, Math.max(8, ww*frac), 11, 5); CX.fillStyle = resting ? '#8a7fa6' : '#7ee0ff'; CX.fill();
+    if (!resting){ CX.fillStyle = 'rgba(255,255,255,.45)'; rr(wx + 2, wy + 1.5, Math.max(4, ww*frac - 4), 3, 1.5); CX.fill(); }
+  }
+  if (resting) txt(Math.ceil(secs) + 's', wx + ww/2, wy, '#fff6d8', 10, 'center');
+}
 function drawWingIcon(x, y, col){
   ell(x, y - 1.5, 6, 2.6, -0.7); ink(col, 1.2);
   ell(x + 2, y + 1.5, 5, 2.3, -0.2); ink(col, 1.2);
@@ -2478,19 +2576,14 @@ function drawHUD(){
     if (i < pl.hp){ CX.fillStyle = 'rgba(255,255,255,.45)'; rr(x+1.5, hy+1.5, seg-3, 3, 1.5); CX.fill(); }
   }
 
-  // wing meter: blue while there's flying left, grey while the wings rest
-  if (pl.wings){
-    const wx = 170, wy = 8, ww = 60;
-    drawWingIcon(wx - 8, 13.5, pl.wingRest ? '#cfc6e0' : '#ffffff');
-    rr(wx, wy, ww, 11, 5); CX.fillStyle = '#2a1b3d'; CX.fill();
-    CX.strokeStyle = 'rgba(255,246,216,.5)'; CX.lineWidth = 1; CX.stroke();
-    const f = pl.wingFuel / WING_MAX;
-    if (f > 0){
-      rr(wx, wy, Math.max(8, ww*f), 11, 5); CX.fillStyle = pl.wingRest ? '#8a7fa6' : '#7ee0ff'; CX.fill();
-      if (!pl.wingRest){ CX.fillStyle = 'rgba(255,255,255,.45)'; rr(wx + 2, wy + 1.5, Math.max(4, ww*f - 4), 3, 1.5); CX.fill(); }
-    }
-    if (pl.wingRest) txt(Math.ceil((WING_MAX - pl.wingFuel)/60) + 's', wx + ww/2, wy, '#fff6d8', 10, 'center');
-  }
+  // your power: wings or a spiky hat
+  if (pl.wings)
+    powerMeter((x, y, r) => drawWingIcon(x, y, r ? '#cfc6e0' : '#ffffff'),
+               pl.wingFuel / WING_MAX, pl.wingRest, (WING_MAX - pl.wingFuel)/60);
+  else if (pl.spiky)
+    powerMeter(drawSpikeIcon,
+               pl.spikeT ? pl.spikeT / SPIKE_TIME : 1 - pl.spikeCool / SPIKE_REST,
+               pl.spikeCool > 0 && !pl.spikeT, pl.spikeCool/60);
 
   drawBanana(W-104, 13, 1.15);
   txt('×' + game.bananas, W-96, 8, '#ffd93b', 12);
@@ -2619,7 +2712,7 @@ function togglePause(){
 }
 function startGame(){
   game.lives = 5; game.score = 0; game.bananas = 0; game.level = 0;   // ten stages is a long trip
-  pl.hp = pl.maxhp; pl.wings = false;
+  pl.hp = pl.maxhp; pl.wings = false; pl.spiky = false;
   loadLevel(0);
   game.state = 'play';
   audioUnlock();
@@ -2634,7 +2727,7 @@ function nextLevel(){
 function respawn(){
   game.lives--;
   if (game.lives < 0){ game.state = 'gameover'; game.timer = 60; return; }
-  pl.hp = pl.maxhp; pl.wings = false;         // losing a life loses your wings
+  pl.hp = pl.maxhp; pl.wings = false; pl.spiky = false;   // losing a life loses your power
   loadLevel(game.level);
   game.state = 'play';
 }
