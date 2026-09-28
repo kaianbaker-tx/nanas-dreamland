@@ -211,7 +211,15 @@ const SONGS = {
   boss:  [[0,1],[0,1],[3,1],[0,1],[5,1],[0,1],[3,1],[-1,1],[0,1],[0,1],[3,1],[7,1],[6,2],[3,2]],
   cave:  [[0,2],[3,1],[7,1],[10,2],[7,1],[3,1],[5,2],[8,1],[5,1],[3,2],[2,1],[0,1],[-2,2],[0,4]],
   summit:[[12,1],[14,1],[16,1],[19,2],[16,1],[14,1],[12,2],[9,1],[11,1],[12,2],[16,1],[14,1],
-          [12,1],[11,1],[9,2],[7,1],[9,1],[11,1],[12,4]]
+          [12,1],[11,1],[9,2],[7,1],[9,1],[11,1],[12,4]],
+  grove: [[7,1],[11,1],[14,1],[12,2],[11,1],[9,2],[7,1],[4,2],[5,1],[7,1],[9,1],[11,2],[9,1],[7,3],
+          [7,1],[11,1],[14,1],[16,2],[14,1],[12,2],[11,1],[9,1],[11,1],[12,1],[9,2],[7,4]],
+  beach: [[0,1],[4,.5],[7,.5],[12,1],[7,1],[9,1],[7,.5],[4,.5],[5,2],[4,1],[5,.5],[7,.5],[9,1],[11,1],
+          [12,2],[null,1],[12,1],[11,.5],[9,.5],[7,1],[4,1],[5,1],[7,1],[4,2],[2,1],[0,3]],
+  jungle:[[9,1],[12,1],[9,.5],[7,.5],[4,1],[7,2],[9,1],[4,1],[2,1],[0,1],[2,2],[null,1],
+          [9,1],[12,1],[14,1],[12,.5],[9,.5],[7,2],[4,1],[7,1],[9,4]],
+  night: [[5,2],[9,1],[12,3],[10,1],[9,2],[7,1],[5,3],[7,2],[9,1],[10,2],[9,1],[7,2],[5,1],[4,3],
+          [5,2],[9,1],[12,3],[14,1],[12,2],[10,1],[9,2],[7,1],[5,5]]
 };
 let song = SONGS.field, songI = 0, nextNote = 0, bpm = 138;
 function setSong(name){ if (SONGS[name] && song !== SONGS[name]){ song = SONGS[name]; songI = 0; nextNote = 0; } }
@@ -302,7 +310,7 @@ function level1(){
     .forEach(([x,y]) => spawns.push(['banana',x,y]));
   spawns.push(['heart', 62, 5]);
   spawns.push(['door', 112, T-2]);
-  return { map:m, spawns, name:'1-1  NANA FIELDS', back:'grass', pal:PAL_GRASS, song:'field', sky:['#8fd8ff','#d9f4ff'], boss:false };
+  return { map:m, spawns, name:'NANA FIELDS', back:'grass', pal:PAL_GRASS, song:'field', sky:['#8fd8ff','#d9f4ff'], boss:false };
 }
 
 function level2(){
@@ -331,7 +339,7 @@ function level2(){
   spawns.push(['heart', 44, 7]);
   spawns.push(['life', 92, 2]);
   spawns.push(['door', 116, 8]);   // sits on the last sky island (surface row 10)
-  return { map:m, spawns, name:'1-3  CLOUD CUSTARD', back:'cloud', pal:PAL_GRASS, song:'sky', sky:['#b79bff','#ffd2f0'], boss:false };
+  return { map:m, spawns, name:'CLOUD CUSTARD', back:'custard', pal:PAL_CUSTARD, song:'sky', sky:['#b79bff','#ffd2f0'], boss:false };
 }
 
 function level3(){
@@ -346,17 +354,33 @@ function level3(){
   spawns.push(['player', 4, T-1]);
   spawns.push(['boss', 30, T-3]);
   spawns.push(['door', 19, T-2]);
-  return { map:m, spawns, name:'1-7  KING PEELA', back:'castle', pal:PAL_CASTLE, song:'boss', sky:['#5b3f8c','#ff9bd2'], boss:true };
+  return { map:m, spawns, name:'KING PEELA', back:'castle', pal:PAL_CASTLE, song:'boss', sky:['#5b3f8c','#ff9bd2'], boss:true };
 }
 
-/* palettes: g/gl = surface cap, d/dd/dl = the soil under it */
+/* palettes: g/gl/gd = surface cap, d/dd/dl = the soil under it.
+   cap = what sits on top (grass, drip, puff, sand, leaf), tex = what the soil is made of,
+   out = the ink around the ground, spk/spkb = spike colors */
 const PAL_GRASS = { g:'#5cc73f', gl:'#83e35e', d:'#c2803f', dd:'#a3652c', dl:'#d99a58' };
-const PAL_CAVE  = { g:'#8a93b5', gl:'#b3bcd8', d:'#6b5a7d', dd:'#51436a', dl:'#8a76a6' };
+const PAL_CAVE  = { g:'#f2cf3a', gl:'#fff29a', d:'#6b5a7d', dd:'#51436a', dl:'#8a76a6', spots:true };  // peel draped over rock
 const PAL_CASTLE= { g:'#a97be0', gl:'#c9a4f5', d:'#c2803f', dd:'#a3652c', dl:'#d99a58' };
+const PAL_SYRUP = { cap:'drip', tex:'pancake', g:'#a8500f', gl:'#e98b2e', gd:'#6e3208',
+                    d:'#f7cb85', dd:'#d99a4a', dl:'#ffe2ae', butter:true };
+const PAL_CUSTARD={ cap:'puff', tex:'custard', out:'#7c5f96', g:'#ffffff', gl:'#ffffff', gd:'#d9d2ff',
+                    d:'#ffe08a', dd:'#d9953c', dl:'#fff2bf' };
+const PAL_SUGAR = { cap:'drip', tex:'sugar', out:'#7a6aa8', g:'#ffd6ea', gl:'#ffffff', gd:'#f29ac4',
+                    d:'#f7f4ff', dd:'#cfc8ee', dl:'#ffffff', spk:'#bfe8ff', spkb:'#9a8fd0' };
+const PAL_CANDY = { cap:'drip', tex:'choc', out:'#2e1610', g:'#ff8fc4', gl:'#ffc4e1', gd:'#d95c97',
+                    d:'#7a4630', dd:'#553020', dl:'#9c6246', sprinkles:true, spk:'#fff6d8', spkb:'#ff5c7a' };
+const PAL_SAND  = { cap:'sand', tex:'sand', out:'#7a5530', g:'#ffe3a0', gl:'#fff5d6', gd:'#e2b96a',
+                    d:'#f0c97a', dd:'#d6a458', dl:'#fbe0a8', spk:'#9a6ad0', spkb:'#6b4a9e' };
+const PAL_JUNGLE= { cap:'leaf', tex:'soil', out:'#2a2418', g:'#2f9e44', gl:'#5fd35c', gd:'#1f7a33',
+                    d:'#6b4a2e', dd:'#4f3420', dl:'#8a6440', spk:'#d8f07a', spkb:'#4f3420' };
+const PAL_NIGHT = { cap:'puff', tex:'night', out:'#1a1238', g:'#c9b8ff', gl:'#efe6ff', gd:'#9a86e0',
+                    d:'#3d3480', dd:'#2c2566', dl:'#5a4fa8' };
 
 function ceiling(m,x,w,rows){ rect(m, x, 0, w, rows, '#'); }
 
-/* ---------------- 1-2  SYRUP GROVE ---------------- */
+/* ---------------- SYRUP GROVE ---------------- */
 function levelGrove(){
   const w = 124, h = 14, m = mkMap(w,h);
   const spawns = [];
@@ -395,11 +419,11 @@ function levelGrove(){
   spawns.push(['heart', 48, 4]);
   spawns.push(['life', 119, 4]);
   spawns.push(['door', 122, T-2]);
-  return { map:m, spawns, name:'1-2  SYRUP GROVE', back:'grass', pal:PAL_GRASS,
-           song:'field', sky:['#8fd8ff','#e8f7d9'], boss:false };
+  return { map:m, spawns, name:'SYRUP GROVE', back:'syrup', pal:PAL_SYRUP,
+           song:'grove', sky:['#ffb56b','#fff0cf'], boss:false };
 }
 
-/* ---------------- 1-4  PEELY CAVERN ---------------- */
+/* ---------------- PEELY CAVERN ---------------- */
 function levelCavern(){
   const w = 118, h = 14, m = mkMap(w,h);
   const spawns = [];
@@ -446,11 +470,11 @@ function levelCavern(){
   spawns.push(['heart', 19, 5]);
   spawns.push(['life', 79, 4]);
   spawns.push(['door', 116, T-2]);
-  return { map:m, spawns, name:'1-4  PEELY CAVERN', back:'cave', pal:PAL_CAVE,
+  return { map:m, spawns, name:'PEELY CAVERN', back:'cave', pal:PAL_CAVE,
            song:'cave', sky:['#4b3560','#241832'], boss:false };
 }
 
-/* ---------------- 1-5  SUGAR SUMMIT  (a tall one) ---------------- */
+/* ---------------- SUGAR SUMMIT  (a tall one) ---------------- */
 function levelSummit(){
   const w = 60, h = 20, m = mkMap(w,h);
   const spawns = [];
@@ -478,11 +502,11 @@ function levelSummit(){
   spawns.push(['heart', 33, 11]);
   spawns.push(['life', 27, 4]);
   spawns.push(['door', 52, 1]);
-  return { map:m, spawns, name:'1-5  SUGAR SUMMIT', back:'cloud', pal:PAL_GRASS,
+  return { map:m, spawns, name:'SUGAR SUMMIT', back:'summit', pal:PAL_SUGAR,
            song:'summit', sky:['#9ad6ff','#ffe0f2'], boss:false };
 }
 
-/* ---------------- 1-6  CANDY CATACOMB ---------------- */
+/* ---------------- CANDY CATACOMB ---------------- */
 function levelCatacomb(){
   const w = 130, h = 14, m = mkMap(w,h);
   const spawns = [];
@@ -535,11 +559,147 @@ function levelCatacomb(){
   spawns.push(['heart', 105, 5]);
   spawns.push(['life', 76, 9]);
   spawns.push(['door', 127, T-2]);
-  return { map:m, spawns, name:'1-6  CANDY CATACOMB', back:'cave', pal:PAL_CAVE,
-           song:'cave', sky:['#553a52','#2a1826'], boss:false };
+  return { map:m, spawns, name:'CANDY CATACOMB', back:'candy', pal:PAL_CANDY,
+           song:'cave', sky:['#6b3a5e','#2a1420'], boss:false };
 }
 
-const LEVELS = [level1, levelGrove, level2, levelCavern, levelSummit, levelCatacomb, level3];
+/* ---------------- BANANA BEACH ---------------- */
+function levelBeach(){
+  const w = 132, h = 14, m = mkMap(w,h);
+  const spawns = [];
+  const T = 11;
+  ground(m,   0, 24, T);
+  ground(m,  28, 14, T);
+  ground(m,  46, 16, T-1);      // dune shelf
+  ground(m,  66, 12, T);
+  ground(m,  82, 18, T);
+  ground(m, 104, 28, T);
+
+  rect(m, 10, T-1, 5, 1, '#');
+  rect(m, 34, T-1, 3, 1, '#');
+  rect(m, 52, T-2, 4, 1, '#');
+  rect(m, 88, T-1, 4, 1, '#');
+  rect(m, 114, T-2, 5, 2, '#');
+
+  rect(m, 16, 7, 4, 1, 'X');
+  rect(m, 30, 6, 3, 1, '#');
+  rect(m, 40, 7, 4, 1, 'X');
+  rect(m, 58, 5, 4, 1, '#');
+  rect(m, 70, 7, 4, 1, 'X');
+  rect(m, 78, 4, 3, 1, '#');
+  rect(m, 92, 6, 5, 1, 'X');
+  rect(m, 108, 6, 3, 1, '#');
+  rect(m, 122, 7, 4, 1, 'X');
+
+  rect(m, 20, T-1, 2, 1, '^');  // sea urchins
+  rect(m, 72, T-1, 2, 1, '^');
+  rect(m, 98, T-1, 2, 1, '^');
+
+  spawns.push(['player', 3, T-1]);
+  [['walker',8,T-1],['walker',12,T-2],['flyer',18,5],['walker',31,T-1],['spiky',38,T-1],
+   ['flyer',44,6],['walker',49,T-2],['walker',57,T-2],['flyer',63,7],['walker',68,T-1],
+   ['walker',75,T-1],['flyer',80,3],['spiky',85,T-1],['walker',94,T-1],['flyer',101,5],
+   ['walker',106,T-1],['walker',111,T-1],['flyer',117,4],['spiky',121,T-1],['walker',126,T-1]
+  ].forEach(s=>spawns.push(s));
+
+  [[17,6],[18,6],[31,5],[41,6],[42,6],[59,4],[60,4],[71,6],[72,6],[79,3],
+   [93,5],[94,5],[95,5],[109,5],[123,6],[124,6],[13,T-2],[36,T-2],[53,T-3],[116,T-3]
+  ].forEach(([x,y]) => spawns.push(['banana',x,y]));
+  spawns.push(['heart', 61, 4]);
+  spawns.push(['life', 80, 3]);
+  spawns.push(['door', 129, T-2]);
+  return { map:m, spawns, name:'BANANA BEACH', back:'beach', pal:PAL_SAND,
+           song:'beach', sky:['#5fcfff','#fff1c9'], boss:false };
+}
+
+/* ---------------- JUNGLE JAM ---------------- */
+function levelJungle(){
+  const w = 128, h = 14, m = mkMap(w,h);
+  const spawns = [];
+  const T = 11;
+  ground(m,   0, 18, T);
+  ground(m,  22, 20, T);
+  ground(m,  46, 10, T-2);      // big mossy rock
+  ground(m,  60, 18, T);
+  ground(m,  82, 12, T-1);
+  ground(m,  98, 30, T);
+
+  rect(m,  12, T-3, 2, 3, '#');  // old stumps to hop
+  rect(m,  32, T-4, 2, 4, '#');
+  rect(m,  70, T-3, 2, 3, '#');
+  rect(m, 110, T-4, 2, 4, '#');
+
+  rect(m,  16, 5, 5, 1, '#');   // branches up in the canopy
+  rect(m,  26, 6, 4, 1, 'X');
+  rect(m,  38, 4, 4, 1, '#');
+  rect(m,  50, 5, 3, 1, 'X');
+  rect(m,  64, 6, 4, 1, '#');
+  rect(m,  76, 4, 4, 1, 'X');
+  rect(m,  88, 5, 4, 1, '#');
+  rect(m, 102, 6, 5, 1, 'X');
+  rect(m, 116, 5, 4, 1, '#');
+
+  rect(m,  26, T-1, 2, 1, '^');  // thorns
+  rect(m,  64, T-1, 3, 1, '^');
+  rect(m, 104, T-1, 2, 1, '^');
+
+  spawns.push(['player', 3, T-1]);
+  [['walker',7,T-1],['walker',16,T-1],['walker',18,4],['flyer',23,5],['walker',24,T-1],
+   ['spiky',29,T-1],['walker',37,T-1],['walker',39,3],['flyer',44,6],['walker',48,T-3],
+   ['spiky',53,T-3],['flyer',58,6],['walker',62,T-1],['walker',68,T-1],['flyer',73,6],
+   ['walker',75,T-1],['walker',77,3],['spiky',85,T-2],['walker',90,T-2],['flyer',95,5],
+   ['walker',100,T-1],['flyer',107,4],['spiky',108,T-1],['walker',114,T-1],['walker',118,4],
+   ['flyer',121,6],['walker',124,T-1]
+  ].forEach(s=>spawns.push(s));
+
+  [[17,4],[20,4],[27,5],[28,5],[40,3],[51,4],[65,5],[66,5],[78,3],[89,4],[90,4],
+   [103,5],[104,5],[105,5],[117,4],[12,T-4],[32,T-5],[70,T-4],[110,T-5]
+  ].forEach(([x,y]) => spawns.push(['banana',x,y]));
+  spawns.push(['heart', 47, T-3]);
+  spawns.push(['life', 79, 3]);
+  spawns.push(['door', 125, T-2]);
+  return { map:m, spawns, name:'JUNGLE JAM', back:'jungle', pal:PAL_JUNGLE,
+           song:'jungle', sky:['#4fbf93','#dcf7b4'], boss:false };
+}
+
+/* ---------------- MOONPIE NIGHT ---------------- */
+function levelNight(){
+  const w = 124, h = 14, m = mkMap(w,h);
+  const spawns = [];
+  const T = 11;
+  ground(m, 0, 14, T);
+  // pillow islands
+  const isl = [[18,9,5],[26,7,4],[33,10,5],[41,7,5],[49,9,4],[55,6,5],[63,9,4],[70,5,4],
+               [76,8,5],[84,10,5],[91,7,4],[98,9,5],[106,6,4],[112,10,12]];
+  isl.forEach(([x,y,ww]) => { rect(m, x, y, ww, 1, '#'); if (ww>4) rect(m, x+1, y+1, ww-2, 1, '#'); });
+  rect(m,  9, 7, 3, 1, 'X');
+  rect(m, 29, 3, 3, 1, 'X');
+  rect(m, 58, 3, 3, 1, 'X');
+  rect(m, 88, 3, 4, 1, 'X');
+  rect(m, 78, 7, 1, 1, '^');
+  rect(m, 114, 9, 2, 1, '^');
+
+  spawns.push(['player', 3, T-1]);
+  [['walker',6,T-1],['flyer',16,6],['walker',20,8],['flyer',24,4],['walker',27,6],
+   ['spiky',35,9],['flyer',38,5],['walker',43,6],['flyer',47,3],['walker',50,8],
+   ['walker',57,5],['flyer',62,4],['spiky',65,8],['walker',71,4],['flyer',74,2],
+   ['walker',77,7],['flyer',82,6],['walker',86,9],['walker',92,6],['flyer',95,3],
+   ['spiky',100,8],['flyer',104,4],['walker',107,5],['walker',117,9],['flyer',119,5]
+  ].forEach(s=>spawns.push(s));
+
+  [[19,8],[21,8],[27,6],[28,6],[34,9],[36,9],[42,6],[44,6],[50,8],[51,8],[56,5],[58,5],
+   [64,8],[71,4],[72,4],[80,7],[85,9],[87,9],[92,6],[93,6],[99,8],[101,8],[107,5],[108,5],
+   [113,9],[30,2],[59,2],[89,2],[90,2]
+  ].forEach(([x,y]) => spawns.push(['banana',x,y]));
+  spawns.push(['heart', 45, 6]);
+  spawns.push(['life', 10, 6]);
+  spawns.push(['door', 120, 8]);    // on the big last pillow (surface row 10)
+  return { map:m, spawns, name:'MOONPIE NIGHT', back:'night', pal:PAL_NIGHT,
+           song:'night', bpm:112, sky:['#1c1846','#6b4a9e'], boss:false };
+}
+
+const LEVELS = [level1, levelGrove, level2, levelCavern, levelBeach, levelSummit,
+                levelJungle, levelCatacomb, levelNight, level3];
 
 /* ============================================================
    WORLD STATE
@@ -650,6 +810,7 @@ function mkStar(x,y,vx){
 
 function loadLevel(i){
   world = LEVELS[i]();
+  world.name = '1-' + (i+1) + '  ' + world.name;
   map = world.map; MAPH = map.length; MAPW = map[0].length;
   enemies = []; projs = []; pickups = []; parts = []; texts = [];
   boss = null; doorObj = null;
@@ -668,7 +829,7 @@ function loadLevel(i){
   updateCamera(true);
   game.banner = 150; game.bannerText = world.name; toastT = 0;
   setSong(world.song);
-  bpm = world.boss ? 158 : 138;
+  bpm = world.bpm || (world.boss ? 158 : 138);
   if (world.boss) toast('SUCK UP his stars  \u2014  then SPIT them at the king!', 420);
 }
 
@@ -1196,99 +1357,458 @@ function puffCloud(x,y,s,alpha){
   ell(x, y+8*s, 15*s, 3.5*s); CX.fill();
   CX.globalAlpha = 1;
 }
-function tree(x, groundY){
+function tree(x, groundY, leaf, leafL){
   CX.fillStyle = '#9a6238';
   rr(x-4.5, groundY-30, 9, 32, 3); CX.fill();
   CX.strokeStyle = OUT_T; CX.lineWidth = 1.6; rr(x-4.5, groundY-30, 9, 32, 3); CX.stroke();
-  CX.fillStyle = '#5cc244'; CX.strokeStyle = OUT_T; CX.lineWidth = 1.8;
+  CX.fillStyle = leaf || '#5cc244'; CX.strokeStyle = OUT_T; CX.lineWidth = 1.8;
   circle(x, groundY-40, 16);   CX.fill(); CX.stroke();
   circle(x-12, groundY-33, 9); CX.fill(); CX.stroke();
   circle(x+12, groundY-33, 9); CX.fill(); CX.stroke();
-  CX.fillStyle = '#7ee05f';
+  CX.fillStyle = leafL || '#7ee05f';
   circle(x-5, groundY-46, 6.5); CX.fill();
   circle(x+6, groundY-43, 4.5); CX.fill();
 }
+
+/* wraps a backdrop piece around the screen as the camera scrolls; par = how far away it is */
+function loopX(x, par, pad){
+  const span = W + pad*2;
+  return ((x - cam.x*par) % span + span) % span - pad;
+}
+/* how far the camera still is from the bottom of a tall level (0 on normal ones) */
+function climb(){ return Math.max(0, MAPH*TS - H) - cam.y; }
+
+/* things that float down the screen forever — leaves, sugar */
+function drift(n, speed, sway, draw){
+  for (let i=0;i<n;i++){
+    const y = ((i*53 + game.t*speed*(0.7 + (i%4)*0.15)) % (H + 20)) - 10;
+    const x = loopX(i*71 + Math.sin(game.t*0.015 + i*1.7)*sway, .5, 20);
+    draw(x, y, i);
+  }
+}
+function skyTwinkles(n){
+  for (let i=0;i<n;i++){
+    const sx = loopX(thash(i,5)*(W + 80), .12, 40), sy = 12 + thash(i,6)*90;
+    const tw = 0.5 + 0.5*Math.sin(game.t*0.06 + i);
+    CX.globalAlpha = 0.25 + tw*0.5;
+    drawStarShape(sx, sy, 2 + tw*1.4, i, '#ffffff', null);
+    CX.globalAlpha = 1;
+  }
+}
+
+/* a maple tapped for syrup: spout, bucket, and a drop now and then */
+function syrupTap(x, groundY, i){
+  const y = groundY - 16;
+  CX.fillStyle = '#8c96b0'; CX.fillRect(x + 4, y - 1, 5, 2);
+  const f = (game.t + i*23) % 70;
+  if (f < 20){ CX.fillStyle = '#e0891f'; ell(x + 8.5, y + 2 + f*0.3, 1.1, 1.5); CX.fill(); }
+  rr(x + 4.5, y + 7, 9, 9, 2); ink('#c3cbe0', 1.4);
+  CX.fillStyle = '#e0891f'; CX.fillRect(x + 6, y + 8.5, 6, 2);
+}
+/* a pudding floating far off in the custard sky */
+function flan(x, y, s){
+  CX.save(); CX.translate(x, y); CX.scale(s, s);
+  CX.globalAlpha = .75;
+  CX.fillStyle = '#ffffff'; ell(0, 11, 21, 3.4); CX.fill();
+  CX.beginPath();
+  CX.moveTo(-16, 10); CX.lineTo(-11, -8); CX.quadraticCurveTo(0, -12, 11, -8);
+  CX.lineTo(16, 10); CX.quadraticCurveTo(0, 13, -16, 10); CX.closePath();
+  CX.fillStyle = '#ffe08a'; CX.fill();
+  CX.clip();
+  CX.fillStyle = '#c9772a'; CX.fillRect(-20, -14, 40, 9);
+  for (let k=-2;k<=2;k++){ circle(k*5.5, -5 + (k%2 ? 2.5 : 0), 2.6); CX.fill(); }
+  CX.restore();
+  CX.save(); CX.translate(x, y); CX.scale(s, s); CX.globalAlpha = .75;
+  CX.fillStyle = '#ff4f6d'; circle(0, -12.5, 3.2); CX.fill();
+  CX.restore();
+}
+/* sugar mountains with frosting poured over the peaks */
+function mountains(par, base, col, tall, seed){
+  for (let i=0;i<5;i++){
+    const mx = loopX(i*170 + seed*85, par, 150);
+    const top = base - tall - ((i + seed) % 3)*22, wd = 100 + ((i*7 + seed) % 3)*20;
+    CX.save();
+    CX.beginPath();
+    CX.moveTo(mx - wd, base); CX.lineTo(mx - 10, top + 8);
+    CX.quadraticCurveTo(mx, top - 2, mx + 10, top + 8);
+    CX.lineTo(mx + wd, base); CX.closePath();
+    CX.fillStyle = col; CX.fill();
+    CX.clip();
+    const sy = top + 24;
+    CX.fillStyle = '#ffffff';
+    CX.fillRect(mx - wd, top - 4, wd*2, sy - top + 4);
+    for (let k=-6;k<=6;k++){
+      const drip = ((k*k*7 + i*3 + seed) % 4) * 3;
+      circle(mx + k*6.5, sy, 3.6); CX.fill();
+      rr(mx + k*6.5 - 2.4, sy, 4.8, 3 + drip, 2.4); CX.fill();
+    }
+    CX.restore();
+  }
+}
+/* a banana peel dangling off the cave roof */
+function peel(x, y, s, col, rot){
+  CX.save(); CX.translate(x, y); CX.rotate(rot || 0); CX.scale(s, s);
+  CX.fillStyle = col;
+  for (const k of [-1, 0, 1]){
+    CX.beginPath();
+    CX.moveTo(-3, 0);
+    CX.quadraticCurveTo(k*11 - 3, 12, k*9, 26 - Math.abs(k)*6);
+    CX.quadraticCurveTo(k*6 + 2, 12, 3, 0);
+    CX.closePath(); CX.fill();
+  }
+  CX.fillStyle = '#3a2a1e'; rr(-2.5, -5, 5, 6, 1.5); CX.fill();
+  CX.restore();
+}
+/* a leaning palm with a bunch of nanas under its leaves */
+function palm(x, groundY, lean){
+  for (let k=0;k<7;k++){
+    ell(x + lean*k*k*0.45, groundY - k*8, 5.4 - k*0.3, 4.6, lean*k*0.05); ink('#c08a4e', 1.3);
+  }
+  const tx = x + lean*16.2, ty = groundY - 54;
+  drawBanana(tx - 3, ty + 8, 1.1); drawBanana(tx + 2, ty + 9, 1.1);
+  for (let f=0; f<6; f++){
+    const a = -Math.PI/2 + (f - 2.5)*0.55 + Math.sin(game.t*0.03 + f)*0.05;
+    const ex = tx + Math.cos(a)*28, ey = ty + Math.sin(a)*16 + 12;
+    CX.beginPath(); CX.moveTo(tx, ty);
+    CX.quadraticCurveTo(tx + Math.cos(a)*17, ty + Math.sin(a)*17 - 8, ex, ey);
+    CX.quadraticCurveTo(tx + Math.cos(a)*14, ty + Math.sin(a)*14 + 2, tx, ty + 3);
+    ink(f%2 ? '#3fb44f' : '#52c75a', 1.4);
+  }
+}
+/* a big floppy jungle leaf growing out of the ground */
+function bigLeaf(x, groundY, d, rot){
+  CX.save(); CX.translate(x, groundY); CX.rotate(rot); CX.scale(d, 1);
+  CX.beginPath(); CX.moveTo(0, 0);
+  CX.quadraticCurveTo(-6, -30, 16, -52);
+  CX.quadraticCurveTo(28, -24, 0, 0);
+  CX.closePath(); ink('#3fae4a', 1.6);
+  CX.strokeStyle = '#2c7a3a'; CX.lineWidth = 1.1;
+  CX.beginPath(); CX.moveTo(1, -2); CX.quadraticCurveTo(8, -28, 16, -50); CX.stroke();
+  CX.restore();
+}
+function vine(x, len, i){
+  const sway = s => Math.sin(game.t*0.02 + i + s*0.05) * 4 * (s/len);
+  CX.strokeStyle = '#2c7a3a'; CX.lineWidth = 2;
+  CX.beginPath(); CX.moveTo(x, 0);
+  for (let s=6; s<=len; s+=6) CX.lineTo(x + sway(s), s);
+  CX.stroke();
+  for (let s=12; s<=len; s+=12){
+    const d = (s/12) % 2 ? 1 : -1;
+    CX.fillStyle = '#4cbf4f'; ell(x + sway(s) + d*3.6, s, 3.8, 1.9, d*0.5); CX.fill();
+  }
+}
+/* the moon is a moonpie somebody took a bite out of, and it's asleep */
+function moonpie(x, y, r){
+  const bx = x + r*0.8, by = y - r*0.55, br = r*0.42;
+  CX.fillStyle = 'rgba(255,240,190,.12)'; circle(x, y, r + 14); CX.fill();
+  CX.fillStyle = 'rgba(255,240,190,.2)';  circle(x, y, r + 6);  CX.fill();
+  CX.save();
+  CX.beginPath(); CX.rect(x - r - 20, y - r - 20, r*2 + 40, r*2 + 40);
+  CX.arc(bx, by, br, 0, Math.PI*2, true);
+  CX.clip('evenodd');
+  circle(x, y, r); ink('#fff1c2', 2);
+  CX.fillStyle = '#f2d890';
+  circle(x - r*.35, y + r*.45, r*.16); CX.fill();
+  circle(x + r*.32, y + r*.52, r*.1);  CX.fill();
+  circle(x - r*.62, y - r*.18, r*.09); CX.fill();
+  CX.restore();
+  CX.save(); circle(x, y, r); CX.clip();
+  CX.strokeStyle = OUT; CX.lineWidth = 2; circle(bx, by, br); CX.stroke();
+  CX.restore();
+  CX.strokeStyle = OUT; CX.lineWidth = 1.4; CX.lineCap = 'round';
+  for (const ex of [x - r*.4, x + r*.1]){
+    CX.beginPath(); CX.arc(ex, y - r*.08, r*.13, .2, Math.PI - .2); CX.stroke();
+  }
+  CX.lineCap = 'butt';
+  blush(x - r*.62, y + r*.18, r*.14, r*.09); blush(x + r*.3, y + r*.18, r*.14, r*.09);
+  CX.fillStyle = '#7d2438'; ell(x - r*.15, y + r*.3, r*.07, r*.09); CX.fill();
+}
+function candyCane(x, top, bottom){
+  const w = 12;
+  CX.save();
+  CX.lineCap = 'butt';
+  CX.strokeStyle = '#d9bfcb'; CX.lineWidth = w;
+  CX.beginPath(); CX.moveTo(x, bottom); CX.lineTo(x, top); CX.arc(x + 11, top, 11, Math.PI, 0); CX.lineTo(x + 22, top + 8); CX.stroke();
+  CX.strokeStyle = '#b8456a'; CX.setLineDash([4, 6]);
+  CX.beginPath(); CX.moveTo(x, bottom); CX.lineTo(x, top); CX.arc(x + 11, top, 11, Math.PI, 0); CX.lineTo(x + 22, top + 8); CX.stroke();
+  CX.setLineDash([]);
+  CX.restore();
+}
+function lollipop(x, groundY, h, col){
+  CX.fillStyle = '#f3e6ee'; rr(x - 1.6, groundY - h, 3.2, h, 1.5); CX.fill();
+  const cy = groundY - h, r = 11;
+  circle(x, cy, r); ink(col, 1.6);
+  CX.save(); circle(x, cy, r); CX.clip();
+  CX.strokeStyle = 'rgba(255,255,255,.75)'; CX.lineWidth = 2.2;
+  CX.beginPath();
+  for (let a=0; a<Math.PI*6; a+=0.3){
+    const d = a/(Math.PI*6)*r, s = a + game.t*0.02;
+    CX.lineTo(x + Math.cos(s)*d, cy + Math.sin(s)*d);
+  }
+  CX.stroke();
+  CX.restore();
+  CX.fillStyle = 'rgba(255,255,255,.6)'; ell(x - 4, cy - 5, 3, 1.8, -.5); CX.fill();
+}
+
+/* every stage's backdrop: far() goes under the drifting clouds, near() over them.
+   clouds = how solid those clouds are (0 = no sky, no clouds) */
+const BACKDROPS = {
+  grass: {
+    clouds: .9,
+    far(){
+      // distant rolling mounds
+      CX.fillStyle = 'rgba(140,214,120,.5)';
+      for (let i=0;i<9;i++){ circle(loopX(i*150, .22, 150), H - 4, 62); CX.fill(); }
+    },
+    near(){
+      CX.fillStyle = '#57c23f';
+      for (let i=0;i<8;i++){ circle(loopX(i*170, .55, 170), H + 40, 48); CX.fill(); }
+      for (let i=0;i<6;i++) tree(loopX(i*230, .55, 230), H - 44);
+    }
+  },
+
+  syrup: {
+    clouds: .7,
+    far(){
+      const sx = 290 - cam.x*0.03;           // low golden sun
+      CX.fillStyle = 'rgba(255,244,200,.35)'; circle(sx, 70, 40); CX.fill();
+      CX.fillStyle = '#fff4c9'; circle(sx, 70, 26); CX.fill();
+      CX.fillStyle = 'rgba(222,140,80,.35)';
+      for (let i=0;i<9;i++){ circle(loopX(i*150, .22, 150), H - 4, 62); CX.fill(); }
+      for (let i=0;i<10;i++){                // a line of little maples far off
+        const x = loopX(i*97, .3, 40), gy = H - 50 + (i%3)*4;
+        CX.fillStyle = 'rgba(150,80,50,.35)'; CX.fillRect(x - 1.5, gy - 12, 3, 14);
+        CX.fillStyle = i%2 ? 'rgba(230,90,50,.4)' : 'rgba(245,150,60,.4)';
+        circle(x, gy - 18, 11); CX.fill();
+      }
+    },
+    near(){
+      CX.fillStyle = '#e8a64f';
+      for (let i=0;i<8;i++){ circle(loopX(i*170, .55, 170), H + 40, 48); CX.fill(); }
+      for (let i=0;i<6;i++){
+        const tx = loopX(i*230, .55, 230);
+        tree(tx, H - 44, i%2 ? '#e8483a' : '#f27a2a', i%2 ? '#ff8a66' : '#ffb14a');
+        syrupTap(tx, H - 44, i);
+      }
+      drift(12, .45, 24, (x,y,i) =>       // maple leaves coming down
+        drawStarShape(x, y, 3.2, game.t*0.03 + i, i%2 ? '#ff7a2f' : '#e8483a', null));
+    }
+  },
+
+  custard: {
+    clouds: .9,
+    far(){
+      for (let i=0;i<4;i++)
+        flan(loopX(i*260 + 90, .12, 60), 64 + (i*37)%60 + Math.sin(game.t*0.02 + i)*3, .8 + (i%2)*.3);
+      CX.fillStyle = 'rgba(255,255,255,.45)';
+      for (let i=0;i<7;i++){
+        const hx = loopX(i*180, .22, 150);
+        circle(hx, H+10, 56); CX.fill(); circle(hx+42, H+18, 42); CX.fill();
+      }
+      skyTwinkles(22);
+    }
+  },
+
+  summit: {
+    clouds: .9,
+    far(){
+      const sink = climb();                  // the mountains sink as you climb
+      mountains(.1, H + 30 + sink*.15, '#ddd5f7', 110, 0);
+      mountains(.2, H + 40 + sink*.3,  '#bfb3ee', 90, 1);
+    },
+    near(){
+      drift(28, .35, 10, (x,y,i) => {       // sugar snow
+        CX.globalAlpha = .8;
+        if (i % 4){ CX.fillStyle = '#ffffff'; circle(x, y, 1.2); CX.fill(); }
+        else twinkle(x, y, 2.4, '#ffffff');
+        CX.globalAlpha = 1;
+      });
+    }
+  },
+
+  cave: {
+    clouds: 0,
+    far(){
+      CX.fillStyle = 'rgba(74,48,94,.55)';
+      for (let i=0;i<8;i++){
+        const hx = loopX(i*112, .28, 112);
+        rr(hx, -24, 74, 130, 26); CX.fill();
+        circle(hx + 37, 150, 46); CX.fill();
+      }
+      CX.fillStyle = 'rgba(48,30,64,.75)';
+      for (let i=0;i<11;i++){
+        const sx = loopX(i*86, .44, 90);
+        const dp = 22 + (i%4)*15;
+        CX.beginPath(); CX.moveTo(sx-9, 0); CX.lineTo(sx, dp); CX.lineTo(sx+9, 0); CX.closePath(); CX.fill();
+      }
+      for (let i=0;i<6;i++)                  // old peels hanging off the roof
+        peel(loopX(i*150 + 60, .44, 60), 26 + (i%3)*6, .9 + (i%2)*.3,
+             'rgba(255,217,59,.5)', Math.sin(game.t*0.02 + i)*.12);
+      for (let i=0;i<8;i++){       // glow-crystals
+        const gx = loopX(i*139, .5, 100);
+        const gy = 108 + (i*41) % 70;
+        CX.globalAlpha = .45 + .3*Math.sin(game.t*0.05 + i);
+        CX.fillStyle = ['#ffe45c','#7ee0ff','#ff9ecb'][i%3];
+        CX.beginPath();
+        CX.moveTo(gx, gy-10); CX.lineTo(gx+4.5, gy); CX.lineTo(gx, gy+10); CX.lineTo(gx-4.5, gy);
+        CX.closePath(); CX.fill();
+        CX.globalAlpha = 1;
+      }
+    }
+  },
+
+  beach: {
+    clouds: .9,
+    far(){
+      const sx = 320 - cam.x*0.02;
+      CX.fillStyle = 'rgba(255,240,150,.35)'; circle(sx, 50, 34); CX.fill();
+      CX.fillStyle = '#fff3a0'; circle(sx, 50, 22); CX.fill();
+      const sea = H - 78;
+      for (let i=0;i<2;i++){                 // a far-off island
+        const ix = loopX(i*330 + 120, .06, 90);
+        CX.fillStyle = '#6cc36a'; ell(ix, sea, 32, 8); CX.fill();
+        CX.fillStyle = '#8fd97a'; ell(ix - 6, sea - 3, 14, 4); CX.fill();
+      }
+      const g = CX.createLinearGradient(0, sea, 0, H);
+      g.addColorStop(0, '#39c6e6'); g.addColorStop(1, '#1f8fc4');
+      CX.fillStyle = g; CX.fillRect(0, sea, W, H - sea);
+      CX.fillStyle = 'rgba(255,255,255,.6)'; CX.fillRect(0, sea, W, 1.5);
+      CX.strokeStyle = 'rgba(255,255,255,.55)'; CX.lineWidth = 1.3;
+      for (let j=0;j<4;j++){
+        const wy = sea + 10 + j*15;
+        for (let i=0;i<8;i++){
+          const wx = loopX(i*60 + j*23 + Math.sin(game.t*0.03 + i + j)*4, .1 + j*.08, 30);
+          CX.beginPath(); CX.arc(wx, wy + 3, 5 + j, Math.PI*1.2, Math.PI*1.8); CX.stroke();
+        }
+      }
+    },
+    near(){
+      CX.strokeStyle = '#ffffff'; CX.lineWidth = 1.4; CX.lineCap = 'round';
+      for (let i=0;i<3;i++){                 // seagulls
+        const x = loopX(i*170 + game.t*0.3, .2, 30), y = 34 + i*18 + Math.sin(game.t*0.05 + i)*4;
+        const f = 1 + Math.sin(game.t*0.2 + i)*2;
+        CX.beginPath(); CX.moveTo(x-5, y-f); CX.quadraticCurveTo(x-2, y-3, x, y);
+        CX.quadraticCurveTo(x+2, y-3, x+5, y-f); CX.stroke();
+      }
+      CX.lineCap = 'butt';
+      for (let i=0;i<5;i++) palm(loopX(i*260 + 60, .55, 120), H - 40, i%2 ? 1 : -1);
+    }
+  },
+
+  jungle: {
+    clouds: 0,
+    far(){
+      CX.fillStyle = 'rgba(40,100,70,.3)';
+      for (let i=0;i<7;i++) CX.fillRect(loopX(i*110, .25, 60) - 7, 0, 14, H);
+      CX.fillStyle = 'rgba(50,150,80,.45)';
+      for (let i=0;i<9;i++){ circle(loopX(i*120, .3, 80), H - 10, 50); CX.fill(); }
+      CX.fillStyle = 'rgba(30,110,70,.6)';     // the canopy overhead
+      for (let i=0;i<12;i++){ circle(loopX(i*62, .3, 60), -8 + (i%3)*7, 30 + (i%2)*9); CX.fill(); }
+    },
+    near(){
+      for (let i=0;i<6;i++){
+        const x = loopX(i*190 + 40, .55, 60);
+        bigLeaf(x, H - 40, 1, -.35 + (i%2)*.2); bigLeaf(x + 6, H - 40, -1, .3);
+      }
+      for (let i=0;i<9;i++) vine(loopX(i*83 + 20, .6, 20), 34 + (i*37)%70, i);
+    }
+  },
+
+  candy: {
+    clouds: 0,
+    far(){
+      CX.fillStyle = 'rgba(70,32,40,.6)';
+      for (let i=0;i<8;i++){
+        const hx = loopX(i*112, .28, 112);
+        rr(hx, -24, 74, 130, 26); CX.fill();
+        circle(hx + 37, 150, 46); CX.fill();
+      }
+      for (let i=0;i<6;i++) candyCane(loopX(i*150 + 40, .35, 40), 52 + (i%2)*16, H);
+      for (let i=0;i<11;i++){                // gumdrops hanging from the roof
+        const gx = loopX(i*86, .44, 90), dp = 20 + (i%4)*10, gy = 26;
+        CX.fillStyle = ['rgba(255,110,160,.75)','rgba(120,220,255,.75)','rgba(255,220,90,.75)','rgba(150,240,150,.75)'][i%4];
+        CX.beginPath(); CX.moveTo(gx - 8, gy); CX.lineTo(gx - 6, gy + dp - 6);
+        CX.quadraticCurveTo(gx, gy + dp + 4, gx + 6, gy + dp - 6); CX.lineTo(gx + 8, gy); CX.closePath(); CX.fill();
+      }
+    },
+    near(){
+      const cols = ['#ff5c9a','#5cc8ff','#ffd93b','#9d7bff','#6fe07a'];
+      for (let i=0;i<5;i++) lollipop(loopX(i*210 + 100, .55, 60), H - 40, 46 + (i%3)*14, cols[i]);
+      for (let i=0;i<10;i++){
+        CX.globalAlpha = .35 + .35*Math.sin(game.t*0.06 + i*2);
+        twinkle(loopX(i*71, .5, 10), 44 + (i*47) % 120, 2.2, cols[i%5]);
+        CX.globalAlpha = 1;
+      }
+    }
+  },
+
+  night: {
+    clouds: .25,
+    far(){
+      for (let i=0;i<40;i++){
+        const sx = loopX(thash(i,71)*(W + 20), .05, 10), sy = 6 + thash(i,13)*130;
+        const tw = .5 + .5*Math.sin(game.t*0.05 + i*1.3);
+        CX.globalAlpha = .3 + tw*.6;
+        if (i % 5){ CX.fillStyle = '#fff6d8'; circle(sx, sy, .9); CX.fill(); }
+        else twinkle(sx, sy, 2 + tw*1.5, '#ffffff');
+        CX.globalAlpha = 1;
+      }
+      const mx = 300 - cam.x*0.03;
+      moonpie(mx, 58, 26);
+      for (let i=0;i<3;i++){                 // it's snoring
+        const f = (game.t*0.4 + i*40) % 120;
+        CX.globalAlpha = Math.max(0, 1 - f/120);
+        txt('z', mx + 26 + f*0.35, 36 - f*0.25, '#fff6d8', Math.round(8 + f*0.05), 'left', false);
+        CX.globalAlpha = 1;
+      }
+      CX.fillStyle = 'rgba(58,44,120,.8)';
+      for (let i=0;i<9;i++){ circle(loopX(i*150, .22, 150), H + 6, 64); CX.fill(); }
+    },
+    near(){
+      CX.fillStyle = '#2c2360';
+      for (let i=0;i<8;i++){ circle(loopX(i*170, .55, 170), H + 30, 52); CX.fill(); }
+      for (let i=0;i<14;i++){                // fireflies
+        const x = loopX(i*97 + Math.sin(game.t*0.013 + i)*30, .5, 20);
+        const y = 70 + (i*53) % 100 + Math.sin(game.t*0.021 + i*2)*10;
+        const a = .5 + .5*Math.sin(game.t*0.07 + i*3);
+        CX.fillStyle = '#fff39a';
+        CX.globalAlpha = a*.35; circle(x, y, 3.4); CX.fill();
+        CX.globalAlpha = a;     circle(x, y, 1.2); CX.fill();
+        CX.globalAlpha = 1;
+      }
+    }
+  },
+
+  castle: {
+    clouds: .35,
+    far(){
+      for (let i=0;i<7;i++){
+        const hx = loopX(i*96, .3, 100);
+        CX.fillStyle = 'rgba(62,38,100,.6)';
+        rr(hx, 54, 50, H, 6); CX.fill();
+        CX.beginPath(); CX.moveTo(hx-6,56); CX.lineTo(hx+25,30); CX.lineTo(hx+56,56); CX.fill();
+        CX.fillStyle = 'rgba(255,190,90,.55)';
+        circle(hx+25, 86, 6); CX.fill();  circle(hx+25, 118, 6); CX.fill();
+      }
+    }
+  }
+};
+
 function drawSky(){
   const g = CX.createLinearGradient(0,0,0,H);
   g.addColorStop(0, world.sky[0]);
   g.addColorStop(1, world.sky[1]);
   CX.fillStyle = g; CX.fillRect(0,0,W,H);
 
-  if (world.back === 'grass'){
-    // distant rolling mounds
-    CX.fillStyle = 'rgba(140,214,120,.5)';
-    for (let i=0;i<9;i++){
-      const hx = ((i*150 - cam.x*0.22) % (W+300) + W+300) % (W+300) - 150;
-      circle(hx, H - 4, 62); CX.fill();
-    }
-  } else if (world.back === 'cloud'){
-    CX.fillStyle = 'rgba(255,255,255,.45)';
-    for (let i=0;i<7;i++){
-      const hx = ((i*180 - cam.x*0.22) % (W+300) + W+300) % (W+300) - 150;
-      circle(hx, H+10, 56); CX.fill(); circle(hx+42, H+18, 42); CX.fill();
-    }
-    for (let i=0;i<22;i++){       // little twinkles up high
-      const sx = ((i*83 - cam.x*0.12) % (W+80) + W+80) % (W+80) - 40;
-      const sy = 12 + (i*47) % 90;
-      const tw = 0.5 + 0.5*Math.sin(game.t*0.06 + i);
-      CX.globalAlpha = 0.25 + tw*0.5;
-      drawStarShape(sx, sy, 2 + tw*1.4, i, '#ffffff', null);
-      CX.globalAlpha = 1;
-    }
-  } else if (world.back === 'cave'){
-    CX.fillStyle = 'rgba(74,48,94,.55)';
-    for (let i=0;i<8;i++){
-      const hx = ((i*112 - cam.x*0.28) % (W+224) + W+224) % (W+224) - 112;
-      rr(hx, -24, 74, 130, 26); CX.fill();
-      circle(hx + 37, 150, 46); CX.fill();
-    }
-    CX.fillStyle = 'rgba(48,30,64,.75)';
-    for (let i=0;i<11;i++){
-      const sx = ((i*86 - cam.x*0.44) % (W+180) + W+180) % (W+180) - 90;
-      const dp = 22 + (i%4)*15;
-      CX.beginPath(); CX.moveTo(sx-9, 0); CX.lineTo(sx, dp); CX.lineTo(sx+9, 0); CX.closePath(); CX.fill();
-    }
-    for (let i=0;i<8;i++){       // glow-crystals
-      const gx = ((i*139 - cam.x*0.5) % (W+200) + W+200) % (W+200) - 100;
-      const gy = 108 + (i*41) % 70;
-      CX.globalAlpha = .45 + .3*Math.sin(game.t*0.05 + i);
-      CX.fillStyle = i%2 ? '#7ee0ff' : '#ff9ecb';
-      CX.beginPath();
-      CX.moveTo(gx, gy-10); CX.lineTo(gx+4.5, gy); CX.lineTo(gx, gy+10); CX.lineTo(gx-4.5, gy);
-      CX.closePath(); CX.fill();
-      CX.globalAlpha = 1;
-    }
-  } else {
-    CX.fillStyle = 'rgba(62,38,100,.6)';
-    for (let i=0;i<7;i++){
-      const hx = ((i*96 - cam.x*0.3) % (W+200) + W+200) % (W+200) - 100;
-      rr(hx, 54, 50, H, 6); CX.fill();
-      CX.beginPath(); CX.moveTo(hx-6,56); CX.lineTo(hx+25,30); CX.lineTo(hx+56,56); CX.fill();
-      CX.fillStyle = 'rgba(255,190,90,.55)';
-      circle(hx+25, 86, 6); CX.fill();  circle(hx+25, 118, 6); CX.fill();
-      CX.fillStyle = 'rgba(62,38,100,.6)';
-    }
-  }
-
+  const B = BACKDROPS[world.back] || BACKDROPS.grass;
+  if (B.far) B.far();
   // clouds drift across every stage that has a sky
-  for (let i=0; i<8 && world.back !== 'cave'; i++){
-    const cx = ((i*118 - cam.x*0.45 + game.t*0.08) % (W+160) + W+160) % (W+160) - 80;
+  for (let i=0; i<8 && B.clouds; i++){
+    const cx = loopX(i*118 + game.t*0.08, .45, 80);
     const cy = 16 + ((i*67) % 74);
-    puffCloud(cx, cy, 0.75 + (i%3)*0.22, world.back==='castle' ? .35 : .9);
+    puffCloud(cx, cy, 0.75 + (i%3)*0.22, B.clouds);
   }
-
-  // near hills + trees on the grass stage
-  if (world.back === 'grass'){
-    CX.fillStyle = '#57c23f';
-    for (let i=0;i<8;i++){
-      const hx = ((i*170 - cam.x*0.55) % (W+340) + W+340) % (W+340) - 170;
-      circle(hx, H + 40, 48); CX.fill();
-    }
-    for (let i=0;i<6;i++){
-      const tx = ((i*230 - cam.x*0.55) % (W+460) + W+460) % (W+460) - 230;
-      tree(tx, H - 44);
-    }
-  }
+  if (B.near) B.near();
 }
 
 /* ---------------- terrain ---------------- */
@@ -1316,65 +1836,252 @@ function drawStarBlock(x,y){
   CX.fillStyle = '#ffc25c'; CX.fill();
   drawStarShape(x+TS/2, y+TS/2 + .4, 4.8, 0, '#fff2b8', '#c97c14');
 }
+/* what the ground is made of, painted inside one tile */
+function soilTex(P, tx, ty, x, y, capped){
+  const h = thash(tx,ty), h2 = thash(tx+9,ty);
+  switch (P.tex){
+    case 'pancake':          // a stack of pancakes, three to a tile
+      for (let j=0;j<3;j++){
+        const ly = y + j*5.34;
+        CX.fillStyle = P.dl; CX.fillRect(x, ly + .8, TS, 1.2);
+        CX.fillStyle = P.dd; CX.fillRect(x, ly + 4.1, TS, 1.3);
+      }
+      if (h > .45){ CX.fillStyle = P.dd; circle(x + 3 + h*10, y + 9 + h2*4, .9); CX.fill(); }
+      break;
+    case 'custard':          // wobbly custard sitting on caramel
+      CX.fillStyle = P.dl; ell(x + 4 + h*8, y + (capped ? 11 : 5), 3.2, 1.3); CX.fill();
+      CX.fillStyle = P.dd;
+      if (h2 > .5){ circle(x + 3 + h2*10, y + 13 - h*4, .7); CX.fill(); }
+      if (!isDirt(tx, ty+1)){
+        CX.fillRect(x, y + 11, TS, 5);
+        CX.fillStyle = '#eeb05a'; CX.fillRect(x, y + 11, TS, 1.3);
+      }
+      break;
+    case 'sugar':            // one sugar cube per tile
+      CX.fillStyle = P.dd;
+      CX.fillRect(x, y + TS - 1.3, TS, 1.3); CX.fillRect(x + TS - 1.3, y, 1.3, TS);
+      for (let i=0;i<4;i++){ circle(x + 2 + thash(tx+i*5, ty+i)*12, y + 2 + thash(tx, ty+i*3)*12, .6); CX.fill(); }
+      if (h > .72){
+        CX.globalAlpha = .5 + .5*Math.sin(game.t*0.08 + h*20);
+        twinkle(x + 4 + h2*8, y + (capped ? 10 : 5) + h*3, 2.2, '#ffffff');
+        CX.globalAlpha = 1;
+      }
+      break;
+    case 'choc':             // chocolate bar squares
+      for (let j=0;j<2;j++) for (let i=0;i<2;i++){
+        if (capped && j === 0) continue;
+        const sx = x + i*8, sy = y + j*8;
+        CX.fillStyle = P.dd; CX.fillRect(sx + 6.8, sy, 1.2, 8); CX.fillRect(sx, sy + 6.8, 8, 1.2);
+        CX.fillStyle = P.dl; CX.fillRect(sx + 1, sy + 1, 5.2, 1.1); CX.fillRect(sx + 1, sy + 1, 1.1, 5.2);
+      }
+      break;
+    case 'sand':
+      CX.fillStyle = P.dd;
+      for (let i=0;i<5;i++){
+        circle(x + 1 + thash(tx+i*3, ty+i*7)*14, y + (capped ? 8 : 1) + thash(tx+i, ty-i)*(capped ? 7 : 14), .7); CX.fill();
+      }
+      if (h > .84){ CX.fillStyle = '#f7b6c2'; ell(x + 5 + h2*6, y + 12, 2.2, 1.4); CX.fill(); }
+      break;
+    case 'soil':             // dark jungle dirt with roots through it
+      CX.strokeStyle = P.dd; CX.lineWidth = 1.2;
+      if (h > .4){
+        CX.beginPath(); CX.moveTo(x + h*16, y + (capped ? 8 : 0));
+        CX.quadraticCurveTo(x + h2*16, y + 11, x + 8, y + 16); CX.stroke();
+      }
+      if (h2 > .55){ CX.fillStyle = P.dl; ell(x + 3 + h2*9, y + 12, 1.8, 1.2); CX.fill(); }
+      break;
+    case 'night':            // night-sky stuff, little stars inside
+      if (h > .5){
+        CX.globalAlpha = .4 + .6*Math.abs(Math.sin(game.t*0.03 + h*30));
+        twinkle(x + 3 + h2*10, y + (capped ? 10 : 3) + h*4, 1.7, '#fff6c8');
+        CX.globalAlpha = 1;
+      }
+      if (h2 > .7){ CX.fillStyle = P.dl; circle(x + 2 + h*11, y + 13, .9); CX.fill(); }
+      break;
+    default: {               // brickwork: offset seams row by row
+      CX.fillStyle = P.dd;
+      CX.fillRect(x, y + (capped ? 11 : 7), TS, 1.6);
+      const seam = (ty % 2) ? x : x + 8;
+      CX.fillRect(seam, y + (capped ? 12 : 8), 1.6, 8);
+      CX.fillRect(seam + 8, y + (capped ? 4 : 0), 1.6, 7);
+      if (capped){ CX.fillStyle = P.dl; CX.fillRect(x, y + 7, TS, 2); }
+      CX.fillStyle = P.dl;
+      if (h > .5) circle(x + 3 + h*9, y + (capped?15:4), 1.4), CX.fill();
+      if (h2 > .62) circle(x + 4 + h2*8, y + 12, 1.1), CX.fill();
+    }
+  }
+}
+
+/* whatever covers the top of the ground, painted inside the tile */
+function capTop(P, tx, ty, x, y){
+  const h = thash(tx,ty);
+  switch (P.cap){
+    case 'drip': {           // syrup / frosting poured over the top, running down
+      CX.fillStyle = P.gd; CX.fillRect(x, y, TS, 7.4);
+      CX.fillStyle = P.g;  CX.fillRect(x, y, TS, 6);
+      const n = h > .5 ? 2 : 1;
+      for (let i=0;i<n;i++){
+        const dx = x + 3 + thash(tx + i*7, ty + 3)*10, len = 3 + thash(tx + i*3, ty + 1)*7;
+        CX.fillStyle = P.gd; rr(dx - 2.3, y + 3, 4.6, len + 4.6, 2.3); CX.fill();
+        CX.fillStyle = P.g;  rr(dx - 1.6, y + 3, 3.2, len + 3.4, 1.6); CX.fill();
+        CX.fillStyle = P.gl; ell(dx - .5, y + len + 4.2, .7, 1.1); CX.fill();
+      }
+      CX.fillStyle = P.gl; CX.fillRect(x, y + 1.2, TS, 1.5);
+      break;
+    }
+    case 'puff':             // cloud / pillow top
+      CX.fillStyle = P.gd;
+      for (let i=0;i<3;i++){ circle(x + 2.6 + i*5.4, y + 7.6, 3); CX.fill(); }
+      CX.fillStyle = P.g; CX.fillRect(x, y, TS, 7);
+      for (let i=0;i<3;i++){ circle(x + 2.6 + i*5.4, y + 6.4, 2.8); CX.fill(); }
+      break;
+    case 'sand':
+      CX.fillStyle = P.g; CX.fillRect(x, y, TS, 5);
+      for (let i=0;i<4;i++){ circle(x + 2 + i*4, y + 5, 2.1); CX.fill(); }
+      CX.fillStyle = P.gl; CX.fillRect(x, y, TS, 1.8);
+      CX.strokeStyle = P.gd; CX.lineWidth = .9;
+      CX.beginPath(); CX.arc(x + 4 + h*8, y + 6.5, 3, Math.PI*1.2, Math.PI*1.8); CX.stroke();
+      break;
+    case 'leaf':             // moss with leaf tips hanging over the edge
+      for (let i=0;i<2;i++){
+        const lx = x + 1 + i*8 + h*2;
+        CX.fillStyle = P.gd;
+        CX.beginPath(); CX.moveTo(lx, y + 5); CX.quadraticCurveTo(lx + 3, y + 13 + h*2, lx + 7, y + 5); CX.fill();
+      }
+      CX.fillStyle = P.g;  CX.fillRect(x, y, TS, 7);
+      CX.fillStyle = P.gl; CX.fillRect(x, y, TS, 2.5);
+      break;
+    default:                 // grass
+      CX.fillStyle = P.g;  CX.fillRect(x, y, TS, 7);
+      CX.fillStyle = P.gl; CX.fillRect(x, y, TS, 2.5);
+      CX.fillStyle = P.g;
+      for (let i=0;i<3;i++){ circle(x + 2.6 + i*5.4, y + 7, 2.7); CX.fill(); }
+  }
+  if (P.spots){              // it's a banana peel, so it gets brown spots
+    CX.fillStyle = '#8a5a1a';
+    if (h > .3){ ell(x + 3 + h*9, y + 3.6, 1.2, .8); CX.fill(); }
+    if (h < .6){ ell(x + 12 - h*6, y + 5, .8, .6); CX.fill(); }
+  }
+  if (P.sprinkles){
+    const cols = ['#ffffff','#7ee0ff','#ffe45c','#9dffb0','#ff5c7a'];
+    for (let i=0;i<3;i++){
+      const a = thash(tx + i*11, ty + i*5);
+      CX.save(); CX.translate(x + 2 + a*12, y + 2 + thash(tx, ty + i*7)*3); CX.rotate(a*6);
+      CX.fillStyle = cols[(tx + ty + i) % 5]; CX.fillRect(-1.6, -.6, 3.2, 1.2);
+      CX.restore();
+    }
+  }
+}
+
+/* bits that poke up above the top edge: grass tufts, cloud bumps, shells, ferns.
+   pass 0 draws ink under everything, pass 1 the color on top, so bumps merge */
+function capOver(P, tx, ty, x, y, pass){
+  const h = thash(tx+3,ty);
+  switch (P.cap){
+    case 'puff': {
+      const n = h > .5 ? 2 : 1;
+      for (let i=0;i<n;i++){
+        const r = 3.4 + thash(tx+i, ty+5)*1.8;
+        let bx = x + 4 + thash(tx + i*5, ty)*8;
+        if (!isDirt(tx-1,ty)) bx = Math.max(bx, x + r + 3);
+        if (!isDirt(tx+1,ty)) bx = Math.min(bx, x + TS - r - 3);
+        const by = y + .6;
+        if (pass === 0){
+          CX.strokeStyle = P.out; CX.lineWidth = 3.4;
+          CX.beginPath(); CX.arc(bx, by, r, Math.PI, 0); CX.stroke();
+        } else {
+          CX.fillStyle = P.g; circle(bx, by, r); CX.fill();
+          CX.fillStyle = P.gl; ell(bx - r*.3, by - r*.4, r*.4, r*.25); CX.fill();
+        }
+      }
+      break;
+    }
+    case 'sand':
+      if (pass === 0) break;
+      if (h > .86){          // beach grass
+        CX.strokeStyle = '#4f9e3a'; CX.lineWidth = 1.2; CX.lineCap = 'round';
+        const bx = x + 4 + h*6;
+        for (const d of [-3, 0, 3]){ CX.beginPath(); CX.moveTo(bx, y + 1); CX.quadraticCurveTo(bx + d*.5, y - 3, bx + d, y - 6 + Math.abs(d)*.6); CX.stroke(); }
+        CX.lineCap = 'butt';
+      } else if (h < .1){    // a shell
+        const bx = x + 5 + h*50;
+        CX.beginPath(); CX.moveTo(bx - 3.2, y + 1); CX.arc(bx, y + 1, 3.2, Math.PI, 0); CX.closePath();
+        ink('#ffb3c2', 1);
+      }
+      break;
+    case 'leaf':
+      if (pass === 0) break;
+      if (h > .45){          // ferns
+        CX.fillStyle = P.gl;
+        const bx = x + 3 + h*9;
+        for (const d of [-1, 1]){
+          CX.beginPath(); CX.moveTo(bx, y + 2); CX.quadraticCurveTo(bx + d*2, y - 6, bx + d*6, y - 7);
+          CX.quadraticCurveTo(bx + d*2, y - 2, bx, y + 2); CX.fill();
+        }
+      }
+      if (h < .14){          // a jam-red flower
+        const bx = x + 8, by = y - 3;
+        CX.strokeStyle = P.gd; CX.lineWidth = 1.2; CX.beginPath(); CX.moveTo(bx, y + 1); CX.lineTo(bx, by); CX.stroke();
+        CX.fillStyle = '#ff4f6d';
+        for (let k=0;k<5;k++){ const a = k*Math.PI*2/5; circle(bx + Math.cos(a)*2.4, by + Math.sin(a)*2.4, 1.8); CX.fill(); }
+        CX.fillStyle = '#ffd93b'; circle(bx, by, 1.3); CX.fill();
+      }
+      break;
+    case 'drip':
+      if (pass === 1 && P.butter && h > .8){   // a pat of butter on the pancakes
+        rr(x + 4, y - 3, 8, 5, 1.5); ink('#fff3a0', 1.2);
+        CX.fillStyle = '#ffffff'; CX.fillRect(x + 5.5, y - 2, 3, 1);
+      }
+      break;
+    default:                 // grass tufts poking up over the lip
+      if (pass === 1 && h > .55){
+        CX.fillStyle = P.gl;
+        const bx = x + 3 + h*9;
+        CX.beginPath(); CX.moveTo(bx-2, y+1); CX.quadraticCurveTo(bx, y-4, bx+2, y+1); CX.fill();
+      }
+  }
+}
+
 function drawTiles(){
   const x0 = Math.max(0, Math.floor(cam.x/TS) - 1), x1 = Math.min(MAPW-1, Math.ceil((cam.x+W)/TS));
   const y0 = Math.max(0, Math.floor(cam.y/TS) - 1), y1 = Math.min(MAPH-1, Math.ceil((cam.y+H)/TS));
-  const P = world.pal || {};
-  const GRASS = P.g || '#5cc73f', GRASS_L = P.gl || '#83e35e';
-  const DIRT  = P.d || '#c2803f', DIRT_D  = P.dd || '#a3652c', DIRT_L = P.dl || '#d99a58';
+  const P = world.pal || PAL_GRASS;
+  const isCapped = (tx,ty) => !isDirt(tx,ty-1) && tileAt(tx,ty-1) !== 'X';
 
   // 1 — silhouette
-  CX.fillStyle = OUT_T;
+  CX.fillStyle = P.out || OUT_T;
   for (let ty=y0; ty<=y1; ty++) for (let tx=x0; tx<=x1; tx++)
     if (isDirt(tx,ty)){ dirtPath(tx,ty,2); CX.fill(); }
   // 2 — body
-  CX.fillStyle = DIRT;
+  CX.fillStyle = P.d;
   for (let ty=y0; ty<=y1; ty++) for (let tx=x0; tx<=x1; tx++)
     if (isDirt(tx,ty)){ dirtPath(tx,ty,0); CX.fill(); }
-  // 3 — soil texture, grass caps, scalloped edge
+  // 3 — soil texture and whatever covers the top
   for (let ty=y0; ty<=y1; ty++) for (let tx=x0; tx<=x1; tx++){
     if (!isDirt(tx,ty)) continue;
-    const x = tx*TS, y = ty*TS;
-    const capped = !isDirt(tx,ty-1) && tileAt(tx,ty-1) !== 'X';
+    const x = tx*TS, y = ty*TS, capped = isCapped(tx,ty);
     CX.save(); dirtPath(tx,ty,0); CX.clip();
-    // brickwork: offset seams row by row
-    CX.fillStyle = DIRT_D;
-    CX.fillRect(x, y + (capped ? 11 : 7), TS, 1.6);
-    const seam = (ty % 2) ? x : x + 8;
-    CX.fillRect(seam, y + (capped ? 12 : 8), 1.6, 8);
-    CX.fillRect(seam + 8, y + (capped ? 4 : 0), 1.6, 7);
-    if (capped){ CX.fillStyle = DIRT_L; CX.fillRect(x, y + 7, TS, 2); }
-    CX.fillStyle = DIRT_L;
-    if (thash(tx,ty) > .5) circle(x + 3 + thash(tx,ty)*9, y + (capped?15:4), 1.4), CX.fill();
-    if (thash(tx+9,ty) > .62) circle(x + 4 + thash(tx+9,ty)*8, y + 12, 1.1), CX.fill();
-    if (capped){
-      CX.fillStyle = GRASS;   CX.fillRect(x, y, TS, 7);
-      CX.fillStyle = GRASS_L; CX.fillRect(x, y, TS, 2.5);
-      CX.fillStyle = GRASS;
-      for (let i=0;i<3;i++){ circle(x + 2.6 + i*5.4, y + 7, 2.7); CX.fill(); }
-    }
+    soilTex(P, tx, ty, x, y, capped);
+    if (capped) capTop(P, tx, ty, x, y);
     CX.restore();
-    if (capped){        // tufts poking up over the lip
-      CX.fillStyle = GRASS_L;
-      if (thash(tx+3,ty) > .55){
-        const bx = x + 3 + thash(tx+3,ty)*9;
-        CX.beginPath(); CX.moveTo(bx-2, y+1); CX.quadraticCurveTo(bx, y-4, bx+2, y+1); CX.fill();
-      }
-    }
   }
+  // 3b — what pokes up over the lip
+  for (let pass=0; pass<2; pass++)
+    for (let ty=y0; ty<=y1; ty++) for (let tx=x0; tx<=x1; tx++)
+      if (isDirt(tx,ty) && isCapped(tx,ty)) capOver(P, tx, ty, tx*TS, ty*TS, pass);
   // 4 — star blocks and spikes
   for (let ty=y0; ty<=y1; ty++) for (let tx=x0; tx<=x1; tx++){
     const c = map[ty][tx];
     if (c === 'X') drawStarBlock(tx*TS, ty*TS);
     else if (c === '^'){
       const x = tx*TS, y = ty*TS;
-      CX.fillStyle = '#e6ecf7'; CX.strokeStyle = OUT; CX.lineWidth = 1.5;
+      CX.fillStyle = P.spk || '#e6ecf7'; CX.strokeStyle = OUT; CX.lineWidth = 1.5;
       for (let i=0;i<3;i++){
         CX.beginPath();
         CX.moveTo(x + i*5.4 + .6, y+TS); CX.lineTo(x + i*5.4 + 2.7, y+3.5); CX.lineTo(x + i*5.4 + 4.8, y+TS);
         CX.closePath(); CX.fill(); CX.stroke();
       }
-      CX.fillStyle = '#8c97b5'; rr(x, y+TS-3.5, TS, 3.5, 1.5); CX.fill();
+      CX.fillStyle = P.spkb || '#8c97b5'; rr(x, y+TS-3.5, TS, 3.5, 1.5); CX.fill();
     }
   }
 }
@@ -1835,7 +2542,7 @@ function togglePause(){
   else if (game.state === 'paused'){ game.state = 'play'; nextNote = 0; }
 }
 function startGame(){
-  game.lives = 4; game.score = 0; game.bananas = 0; game.level = 0;   // seven stages is a long trip
+  game.lives = 5; game.score = 0; game.bananas = 0; game.level = 0;   // ten stages is a long trip
   pl.hp = pl.maxhp;
   loadLevel(0);
   game.state = 'play';
