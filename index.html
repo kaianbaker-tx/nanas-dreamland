@@ -67,7 +67,7 @@
   <div class="tb" id="tj">FLY</div>
   <div class="tb" id="tk">SUCK</div>
 </div>
-<div id="hint">&#8592;&#8594; move &nbsp;|&nbsp; Z / Up = jump &amp; float &nbsp;|&nbsp; X = inhale, spit &nbsp;|&nbsp; Down = swallow &nbsp;|&nbsp; P pause &nbsp;|&nbsp; M mute</div>
+<div id="hint">&#8592;&#8594; move &nbsp;|&nbsp; Z / Up = jump &amp; float &nbsp;|&nbsp; X = inhale, spit &nbsp;|&nbsp; Down = swallow (a flyer gives WINGS) &nbsp;|&nbsp; P pause &nbsp;|&nbsp; M mute</div>
 <script>
 "use strict";
 /* ============================================================
@@ -199,7 +199,8 @@ const SFX = {
   die:   () => { blip(500,.5,'square',.22,80); noise(.4,.12); },
   boom:  () => { noise(.22,.22); blip(140,.2,'square',.16,60); },
   clear: () => [0,1,2,3].forEach(i => setTimeout(()=>blip([523,659,784,1047][i], .18,'square',.2), i*110)),
-  bosshit:()=> { blip(200,.16,'sawtooth',.2,420); noise(.1,.14); }
+  bosshit:()=> { blip(200,.16,'sawtooth',.2,420); noise(.1,.14); },
+  tired: () => blip(560, .3, 'triangle', .16, 180)
 };
 
 /* melody: [semitone-from-C4 or null, beats] */
@@ -726,7 +727,8 @@ function toast(s, dur){ toastMsg = s; toastT = dur || 90; }
 const pl = {
   x:0, y:0, w:14, h:14, vx:0, vy:0, dir:1,
   onGround:false, floating:false, inhaling:0, mouthful:null,
-  hp:6, maxhp:6, inv:0, anim:0, walkT:0, puffT:0, hurtT:0, squish:0, dead:false
+  hp:6, maxhp:6, inv:0, anim:0, walkT:0, puffT:0, hurtT:0, squish:0, dead:false,
+  floatT:0, tired:false, wings:false, wingFuel:0, wingRest:false
 };
 
 function tileAt(tx,ty){
@@ -819,6 +821,8 @@ function loadLevel(i){
       pl.x = tx*TS + 1; pl.y = (ty+1)*TS - pl.h;
       pl.vx = pl.vy = 0; pl.dir = 1; pl.floating = false;
       pl.inhaling = 0; pl.mouthful = null; pl.inv = 90; pl.dead = false;
+      pl.floatT = 0; pl.tired = false;
+      if (pl.wings){ pl.wingFuel = WING_MAX; pl.wingRest = false; }
     }
     else if (kind === 'walker' || kind === 'flyer' || kind === 'spiky') enemies.push(mkEnemy(kind,tx,ty));
     else if (kind === 'banana' || kind === 'heart' || kind === 'life') pickups.push(mkPickup(kind,tx,ty));
@@ -846,6 +850,21 @@ function mkBoss(tx,ty){
    ============================================================ */
 const GRAV = 0.40, MAXFALL = 6.2;
 const F_GRAV = 0.13, F_MAXFALL = 1.05;
+const FLOAT_MAX = 120;    // Kolby can puff and float on his own for 2 s, then he has to land
+const WING_MAX  = 600;    // wings from a swallowed flyer: 10 s of flying, then 10 s to rest
+
+function onWings(){ return pl.wings && !pl.wingRest && pl.wingFuel > 0; }
+function giveWings(){
+  toast(pl.wings ? 'wings full again!' : 'WINGS!  fly for 10 seconds', 200);
+  pl.wings = true; pl.wingFuel = WING_MAX; pl.wingRest = false;
+  SFX.clear();
+}
+/* out of puff: stop floating and fall until you land */
+function dropDown(msg){
+  pl.floating = false; pl.tired = true;
+  SFX.tired(); puffRing(pl.x+7, pl.y+4);
+  if (msg) toast(msg, 150);
+}
 
 function updatePlayer(){
   if (pl.hurtT > 0) pl.hurtT--;
@@ -859,7 +878,7 @@ function updatePlayer(){
   /* ---- horizontal ---- */
   let accel = 0.5, maxS = 2.05;
   if (pl.inhaling){ accel = 0.22; maxS = 0.85; }
-  if (pl.floating){ accel = 0.35; maxS = 1.65; }
+  if (pl.floating){ accel = 0.35; maxS = onWings() ? 2.05 : 1.65; }
   if (canAct){
     if (K.left && !K.right){ pl.vx -= accel; pl.dir = -1; }
     else if (K.right && !K.left){ pl.vx += accel; pl.dir = 1; }
@@ -873,15 +892,25 @@ function updatePlayer(){
     if (pl.onGround){
       pl.vy = -5.5; pl.onGround = false; pl.squish = 0.5; SFX.jump();
     } else if (!pl.floating){
-      pl.floating = true; pl.vy = Math.min(pl.vy, 0) - 1.7; SFX.flap(); puffRing(pl.x+7, pl.y+14);
+      if (!pl.tired){ pl.floating = true; pl.vy = Math.min(pl.vy, 0) - 1.7; SFX.flap(); puffRing(pl.x+7, pl.y+14); }
     } else {
-      pl.vy = -1.75; SFX.flap(); puffRing(pl.x+7, pl.y+14);
+      pl.vy = onWings() ? -2.2 : -1.75; SFX.flap(); puffRing(pl.x+7, pl.y+14);
     }
   }
   if (canAct && P.jump && pl.mouthful && pl.onGround){ pl.vy = -4.4; pl.onGround = false; SFX.jump(); }
   // short hop
   if (!K.jump && !pl.floating && pl.vy < -2.2) pl.vy = -2.2;
   if (pl.floating && (K.down || pl.mouthful)) pl.floating = false;
+
+  /* ---- floating runs out: 2.5 s of puff on your own, or 10 s on wings ---- */
+  if (pl.floating){
+    if (onWings()){
+      if (--pl.wingFuel <= 0){ pl.wingRest = true; dropDown('wings are tired!  10 seconds to rest'); }
+    } else if (++pl.floatT >= FLOAT_MAX) dropDown();
+  } else if (pl.wings && pl.wingFuel < WING_MAX){
+    pl.wingFuel++;
+    if (pl.wingFuel >= WING_MAX && pl.wingRest){ pl.wingRest = false; toast('wings ready!'); SFX.flap(); }
+  }
 
   /* ---- inhale / spit / swallow ---- */
   if (canAct && !pl.floating && !pl.mouthful && K.act){
@@ -906,7 +935,9 @@ function updatePlayer(){
     puffRing(pl.x + 7, pl.y + 6);
   }
   if (canAct && P.down && pl.mouthful){         // swallow
+    const ate = pl.mouthful.type;
     pl.mouthful = null; game.score += 200; SFX.eat();
+    if (ate === 'flyer') giveWings();
     floatText(pl.x+2, pl.y-6, '+200', '#ffd93b');
     if (Math.random() < 0.34 && pl.hp < pl.maxhp){ pl.hp++; floatText(pl.x, pl.y-16, 'YUM!', '#ff8fb1'); }
   }
@@ -927,7 +958,7 @@ function updatePlayer(){
     if (pl.vy > 0){
       pl.onGround = true;
       if (wasAir && pl.vy > 3) pl.squish = 0.5;
-      pl.floating = false;
+      pl.floating = false; pl.floatT = 0; pl.tired = false;
     }
     pl.vy = 0;
   }
@@ -2106,6 +2137,19 @@ function drawKolby(){
   CX.fillStyle = 'rgba(40,20,60,.16)';
   ell(cx, pl.y + pl.h + 2, rx*0.82, 2.5); CX.fill();
 
+  // wings from a swallowed flyer: flapping when flying, droopy and grey while they rest
+  if (pl.wings){
+    const flying = pl.floating && onWings();
+    const f = flying ? Math.sin(game.t*0.55) : Math.sin(game.t*0.08)*0.25;
+    const col = pl.wingRest ? '#cfc6e0' : '#ffffff';
+    const ax = cx - dir*5, ay = y - 2, droop = pl.wingRest ? 0.9 : 0;
+    for (const [a, len] of [[1.15, 7], [0.75, 9], [0.35, 8]]){     // three feathers, fanned
+      const t = a + f*0.35 - droop;
+      const vx = -dir*Math.cos(t), vy = -Math.sin(t);
+      ell(ax + vx*len*0.9, ay + vy*len*0.9, len, 2.8, Math.atan2(vy, vx)); ink(col, 1.2);
+    }
+  }
+
   // feet — big angled ovals, back one darker
   const fy = y + ry - 0.2;
   CX.fillStyle = '#d94a2e';
@@ -2397,6 +2441,24 @@ function drawKolbyIcon(x,y,r){
   blush(x - r*0.66, y + r*0.28, r*0.22, r*0.15);
   blush(x + r*0.66, y + r*0.28, r*0.22, r*0.15);
 }
+/* how much puff is left, over Kolby's head while he floats on his own */
+function drawPuffMeter(){
+  if (pl.dead) return;
+  const cx = pl.x + pl.w/2;
+  if (pl.floating && !onWings() && pl.floatT > 0){
+    const left = 1 - pl.floatT/FLOAT_MAX;
+    rr(cx - 10, pl.y - 11, 20, 5, 2.5); CX.fillStyle = 'rgba(38,24,58,.75)'; CX.fill();
+    rr(cx - 9, pl.y - 10, 18*left, 3, 1.5); CX.fillStyle = left < .3 ? '#ff8fb1' : '#fff6d8'; CX.fill();
+  }
+  if (pl.tired && !pl.onGround){            // out of puff: a little sweat drop
+    CX.fillStyle = '#7ee0ff'; ell(cx - pl.dir*9, pl.y - 2, 1.5, 2.3); CX.fill();
+  }
+}
+function drawWingIcon(x, y, col){
+  ell(x, y - 1.5, 6, 2.6, -0.7); ink(col, 1.2);
+  ell(x + 2, y + 1.5, 5, 2.3, -0.2); ink(col, 1.2);
+}
+
 function drawHUD(){
   // plate
   rr(4, 3, W-8, 21, 9); CX.fillStyle = 'rgba(38,24,58,.8)'; CX.fill();
@@ -2414,6 +2476,20 @@ function drawHUD(){
     rr(x, hy, seg, 11, 3);
     CX.fillStyle = i < pl.hp ? '#ff5c7a' : '#4a3a6a'; CX.fill();
     if (i < pl.hp){ CX.fillStyle = 'rgba(255,255,255,.45)'; rr(x+1.5, hy+1.5, seg-3, 3, 1.5); CX.fill(); }
+  }
+
+  // wing meter: blue while there's flying left, grey while the wings rest
+  if (pl.wings){
+    const wx = 170, wy = 8, ww = 60;
+    drawWingIcon(wx - 8, 13.5, pl.wingRest ? '#cfc6e0' : '#ffffff');
+    rr(wx, wy, ww, 11, 5); CX.fillStyle = '#2a1b3d'; CX.fill();
+    CX.strokeStyle = 'rgba(255,246,216,.5)'; CX.lineWidth = 1; CX.stroke();
+    const f = pl.wingFuel / WING_MAX;
+    if (f > 0){
+      rr(wx, wy, Math.max(8, ww*f), 11, 5); CX.fillStyle = pl.wingRest ? '#8a7fa6' : '#7ee0ff'; CX.fill();
+      if (!pl.wingRest){ CX.fillStyle = 'rgba(255,255,255,.45)'; rr(wx + 2, wy + 1.5, Math.max(4, ww*f - 4), 3, 1.5); CX.fill(); }
+    }
+    if (pl.wingRest) txt(Math.ceil((WING_MAX - pl.wingFuel)/60) + 's', wx + ww/2, wy, '#fff6d8', 10, 'center');
   }
 
   drawBanana(W-104, 13, 1.15);
@@ -2543,7 +2619,7 @@ function togglePause(){
 }
 function startGame(){
   game.lives = 5; game.score = 0; game.bananas = 0; game.level = 0;   // ten stages is a long trip
-  pl.hp = pl.maxhp;
+  pl.hp = pl.maxhp; pl.wings = false;
   loadLevel(0);
   game.state = 'play';
   audioUnlock();
@@ -2558,7 +2634,7 @@ function nextLevel(){
 function respawn(){
   game.lives--;
   if (game.lives < 0){ game.state = 'gameover'; game.timer = 60; return; }
-  pl.hp = pl.maxhp;
+  pl.hp = pl.maxhp; pl.wings = false;         // losing a life loses your wings
   loadLevel(game.level);
   game.state = 'play';
 }
@@ -2635,6 +2711,7 @@ function render(){
     drawKolby();
     CX.restore();
   } else drawKolby();
+  drawPuffMeter();
 
   for (const p of parts){
     const a = Math.max(0, Math.min(1, p.life/18));
