@@ -729,7 +729,7 @@ const pl = {
   x:0, y:0, w:14, h:14, vx:0, vy:0, dir:1,
   onGround:false, floating:false, inhaling:0, mouthful:null,
   hp:6, maxhp:6, inv:0, anim:0, walkT:0, puffT:0, hurtT:0, squish:0, dead:false,
-  floatT:0, tired:false, wings:false, wingFuel:0, wingRest:false,
+  floatT:0, tired:false, wings:false,
   spiky:false, spikeT:0, spikeCool:0, spikeHitBoss:false
 };
 
@@ -824,7 +824,6 @@ function loadLevel(i){
       pl.vx = pl.vy = 0; pl.dir = 1; pl.floating = false;
       pl.inhaling = 0; pl.mouthful = null; pl.inv = 90; pl.dead = false;
       pl.floatT = 0; pl.tired = false;
-      if (pl.wings){ pl.wingFuel = WING_MAX; pl.wingRest = false; }
       pl.spikeT = 0; pl.spikeCool = 0;
     }
     else if (kind === 'walker' || kind === 'flyer' || kind === 'spiky') enemies.push(mkEnemy(kind,tx,ty));
@@ -854,16 +853,15 @@ function mkBoss(tx,ty){
 const GRAV = 0.40, MAXFALL = 6.2;
 const F_GRAV = 0.13, F_MAXFALL = 1.05;
 const FLOAT_MAX = 120;    // Kolby can puff and float on his own for 2 s, then he has to land
-const WING_MAX  = 600;    // wings from a swallowed flyer: 10 s of flying, then 10 s to rest
 const SPIKE_TIME = 60;    // spiky hat from a swallowed spiky guy: spikes stay out 1 s...
 const SPIKE_REST = 180;   // ...then rest 3 s before you can pop them again
 const SPIKE_R = 22;       // how close an enemy has to be for the spikes to pop it
 
 /* one power at a time: getting a new one swaps out the old one */
-function onWings(){ return pl.wings && !pl.wingRest && pl.wingFuel > 0; }
+function onWings(){ return pl.wings; }          // wings from a swallowed flyer: fly forever
 function giveWings(){
-  toast(pl.wings ? 'wings full again!' : 'WINGS!  fly for 10 seconds', 200);
-  pl.wings = true; pl.wingFuel = WING_MAX; pl.wingRest = false;
+  toast(pl.wings ? 'yum, more wings!' : 'WINGS!  fly as long as you want', 200);
+  pl.wings = true; pl.tired = false;
   pl.spiky = false; pl.spikeT = 0;
   SFX.clear();
 }
@@ -937,15 +935,8 @@ function updatePlayer(){
   if (!K.jump && !pl.floating && pl.vy < -2.2) pl.vy = -2.2;
   if (pl.floating && (K.down || pl.mouthful)) pl.floating = false;
 
-  /* ---- floating runs out: 2.5 s of puff on your own, or 10 s on wings ---- */
-  if (pl.floating){
-    if (onWings()){
-      if (--pl.wingFuel <= 0){ pl.wingRest = true; dropDown('wings are tired!  10 seconds to rest'); }
-    } else if (++pl.floatT >= FLOAT_MAX) dropDown();
-  } else if (pl.wings && pl.wingFuel < WING_MAX){
-    pl.wingFuel++;
-    if (pl.wingFuel >= WING_MAX && pl.wingRest){ pl.wingRest = false; toast('wings ready!'); SFX.flap(); }
-  }
+  /* ---- on your own you run out of puff after 2 s; on wings you never do ---- */
+  if (pl.floating && !onWings() && ++pl.floatT >= FLOAT_MAX) dropDown();
 
   /* ---- inhale / spit / swallow ---- */
   if (canAct && !pl.floating && !pl.mouthful && K.act){
@@ -2179,16 +2170,14 @@ function drawKolby(){
   CX.fillStyle = 'rgba(40,20,60,.16)';
   ell(cx, pl.y + pl.h + 2, rx*0.82, 2.5); CX.fill();
 
-  // wings from a swallowed flyer: flapping when flying, droopy and grey while they rest
+  // wings from a swallowed flyer: flapping when he flies
   if (pl.wings){
-    const flying = pl.floating && onWings();
-    const f = flying ? Math.sin(game.t*0.55) : Math.sin(game.t*0.08)*0.25;
-    const col = pl.wingRest ? '#cfc6e0' : '#ffffff';
-    const ax = cx - dir*5, ay = y - 2, droop = pl.wingRest ? 0.9 : 0;
+    const f = pl.floating ? Math.sin(game.t*0.55) : Math.sin(game.t*0.08)*0.25;
+    const ax = cx - dir*5, ay = y - 2;
     for (const [a, len] of [[1.15, 7], [0.75, 9], [0.35, 8]]){     // three feathers, fanned
-      const t = a + f*0.35 - droop;
+      const t = a + f*0.35;
       const vx = -dir*Math.cos(t), vy = -Math.sin(t);
-      ell(ax + vx*len*0.9, ay + vy*len*0.9, len, 2.8, Math.atan2(vy, vx)); ink(col, 1.2);
+      ell(ax + vx*len*0.9, ay + vy*len*0.9, len, 2.8, Math.atan2(vy, vx)); ink('#ffffff', 1.2);
     }
   }
 
@@ -2577,9 +2566,7 @@ function drawHUD(){
   }
 
   // your power: wings or a spiky hat
-  if (pl.wings)
-    powerMeter((x, y, r) => drawWingIcon(x, y, r ? '#cfc6e0' : '#ffffff'),
-               pl.wingFuel / WING_MAX, pl.wingRest, (WING_MAX - pl.wingFuel)/60);
+  if (pl.wings){ drawWingIcon(162, 13.5, '#ffffff'); txt('WINGS', 172, 8, '#7ee0ff', 12); }
   else if (pl.spiky)
     powerMeter(drawSpikeIcon,
                pl.spikeT ? pl.spikeT / SPIKE_TIME : 1 - pl.spikeCool / SPIKE_REST,
